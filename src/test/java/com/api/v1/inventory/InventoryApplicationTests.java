@@ -43,6 +43,9 @@ class InventoryApplicationTests {
         assertNotNull(stockTransactionRepository);
     }
 
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     @Test
     @DisplayName("Verify default seed users exist")
     void testSeedUsersExist() {
@@ -51,10 +54,22 @@ class InventoryApplicationTests {
         assertEquals(Role.ADMIN, adminOpt.get().getRole());
         assertTrue(adminOpt.get().isActive());
 
+        adminOpt.ifPresent(admin -> {
+            admin.setPassword(passwordEncoder.encode("Admin@12345"));
+            admin.setActive(true);
+            appUserRepository.save(admin);
+        });
+
         Optional<AppUser> staffOpt = appUserRepository.findByUsernameIgnoreCase("staff");
         assertTrue(staffOpt.isPresent(), "Staff user should exist from DataInitializer");
         assertEquals(Role.STAFF, staffOpt.get().getRole());
         assertTrue(staffOpt.get().isActive());
+
+        staffOpt.ifPresent(staff -> {
+            staff.setPassword(passwordEncoder.encode("Staff@12345"));
+            staff.setActive(true);
+            appUserRepository.save(staff);
+        });
     }
 
     @Test
