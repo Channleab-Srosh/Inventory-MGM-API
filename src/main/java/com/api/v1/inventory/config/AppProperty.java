@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class AppProperty {
 
     private Jwt jwt = new Jwt();
+    private Otp otp = new Otp();
 
     @Data
     public static class Jwt {
@@ -18,5 +19,13 @@ public class AppProperty {
         private long refreshExpiration;
         private int refreshLimit;
         private int refreshLimitWindow;
+    }
+
+    @Data
+    public static class Otp {
+        private int pendingExpiration;
+        private int verifiedExpiration;
+        private int maxRequests;
+        private int limitWindow;
     }
 }

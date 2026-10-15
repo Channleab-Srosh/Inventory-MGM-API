@@ -44,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     private final AppProperty appProperty;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final com.api.v1.inventory.security.CurrentUserService currentUserService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Override
@@ -122,36 +123,6 @@ public class AuthServiceImpl implements AuthService {
     public void resetPassword(ResetPasswordRequest request) {
         String tokenStr = request.getOtp().trim();
 
-        if (tokenStr.startsWith("Bearer ")) {
-            tokenStr = tokenStr.substring(7).trim();
-        }
-
-        // Support resetting password using an active JWT access token
-        if (tokenStr.startsWith("ey") && tokenStr.contains(".")) {
-            try {
-                String username = jwtService.extractUsername(tokenStr);
-                UserDetails userDetails = appUserService.loadUserByUsername(username);
-
-                if (!jwtService.isTokenValid(tokenStr, userDetails)) {
-                    throw new BadRequestException("Access token is invalid or expired. Please login again.");
-                }
-
-                AppUser user = userRepository.findByUsernameIgnoreCase(username)
-                        .orElseThrow(() -> new BadRequestException("User not found: " + username));
-
-                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-                userRepository.save(user);
-
-                log.info("Password successfully updated via access token for user id={}, username={}", user.getId(), user.getUsername());
-                return;
-            } catch (BadRequestException bre) {
-                throw bre;
-            } catch (Exception e) {
-                throw new BadRequestException("Invalid or expired access token: " + e.getMessage());
-            }
-        }
-
-        // Otherwise process as OTP code from forgot-password
         AppUserToken tokenEntity = userTokenRepository.findByTokenAndRevokedFalse(tokenStr)
                 .orElseThrow(() -> new BadRequestException("Invalid or expired password reset token / OTP code"));
 
@@ -175,5 +146,24 @@ public class AuthServiceImpl implements AuthService {
         userTokenRepository.save(tokenEntity);
 
         log.info("Password successfully reset for user id={}, username={}", user.getId(), user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(com.api.v1.inventory.model.request.ChangePasswordRequest request) {
+        AppUser currentUser = currentUserService.getCurrentUser();
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), currentUser.getPassword())) {
+            throw new BadRequestException("Current password does not match");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), currentUser.getPassword())) {
+            throw new BadRequestException("New password cannot be the same as the current password");
+        }
+
+        currentUser.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(currentUser);
+
+        log.info("Password successfully changed by authenticated user: id={}, username={}", currentUser.getId(), currentUser.getUsername());
     }
 }

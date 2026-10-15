@@ -57,4 +57,14 @@ public class AuthController {
                 "Password reset successfully. You can now log in with your new password."
         ));
     }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Change password for currently authenticated user")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody com.api.v1.inventory.model.request.ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ResponseEntity.ok(ApiResponse.ok(
+                null,
+                "Password changed successfully."
+        ));
+    }
 }

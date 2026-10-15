@@ -3,6 +3,7 @@ package com.api.v1.inventory.repository;
 import com.api.v1.inventory.model.entity.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +14,12 @@ import java.util.Optional;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
+    @EntityGraph(attributePaths = {"category", "supplier"})
     Optional<Product> findBySkuIgnoreCase(String sku);
+
+    @Override
+    @EntityGraph(attributePaths = {"category", "supplier"})
+    Optional<Product> findById(Long id);
 
     boolean existsBySkuIgnoreCase(String sku);
 
@@ -23,6 +29,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsBySupplierId(Long supplierId);
 
+    @EntityGraph(attributePaths = {"category", "supplier"})
     @Query("SELECT p FROM Product p " +
            "WHERE (CAST(:keyword AS string) IS NULL " +
            "       OR LOWER(p.name) LIKE CAST(:keyword AS string) " +
@@ -37,6 +44,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("active") Boolean active,
             Pageable pageable);
 
+    @EntityGraph(attributePaths = {"category", "supplier"})
     @Query("SELECT p FROM Product p WHERE p.active = true AND p.stockQuantity <= p.minimumStock")
     Page<Product> findLowStockProducts(Pageable pageable);
 

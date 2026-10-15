@@ -271,8 +271,8 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/reset-password - Success resets password using active JWT access token")
-    void testResetPasswordWithJwtAccessTokenSuccess() throws Exception {
+    @DisplayName("POST /api/v1/auth/change-password - Success changes password for authenticated user")
+    void testChangePasswordSuccess() throws Exception {
         LoginRequest loginStaffReq = LoginRequest.builder()
                 .username("staff")
                 .password("Staff@12345")
@@ -287,23 +287,24 @@ class AuthControllerTest {
         String staffToken = objectMapper.readTree(loginRes.getResponse().getContentAsString())
                 .path("data").path("token").asText();
 
-        com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
-                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
-                        .otp(staffToken)
-                        .newPassword("UpdatedViaToken@123")
+        com.api.v1.inventory.model.request.ChangePasswordRequest changeReq =
+                com.api.v1.inventory.model.request.ChangePasswordRequest.builder()
+                        .currentPassword("Staff@12345")
+                        .newPassword("NewStaffPass@123")
                         .build();
 
-        mockMvc.perform(post("/api/v1/auth/reset-password")
+        mockMvc.perform(post("/api/v1/auth/change-password")
+                        .header("Authorization", "Bearer " + staffToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(resetReq)))
+                        .content(objectMapper.writeValueAsString(changeReq)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.message", containsString("Password reset successfully")));
+                .andExpect(jsonPath("$.message", containsString("Password changed successfully")));
 
         // Verify login works with the updated password
         LoginRequest loginRequest = LoginRequest.builder()
                 .username("staff")
-                .password("UpdatedViaToken@123")
+                .password("NewStaffPass@123")
                 .build();
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -316,5 +317,69 @@ class AuthControllerTest {
         var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
         staffUser.setPassword(passwordEncoder.encode("Staff@12345"));
         appUserRepository.save(staffUser);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/change-password - Fails when current password does not match")
+    void testChangePasswordWrongCurrentPassword() throws Exception {
+        LoginRequest loginStaffReq = LoginRequest.builder()
+                .username("staff")
+                .password("Staff@12345")
+                .build();
+
+        MvcResult loginRes = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginStaffReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String staffToken = objectMapper.readTree(loginRes.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        com.api.v1.inventory.model.request.ChangePasswordRequest changeReq =
+                com.api.v1.inventory.model.request.ChangePasswordRequest.builder()
+                        .currentPassword("WrongOldPass@999")
+                        .newPassword("NewStaffPass@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/change-password")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(changeReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Current password does not match")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/change-password - Fails when unauthenticated")
+    void testChangePasswordUnauthenticated() throws Exception {
+        com.api.v1.inventory.model.request.ChangePasswordRequest changeReq =
+                com.api.v1.inventory.model.request.ChangePasswordRequest.builder()
+                        .currentPassword("Staff@12345")
+                        .newPassword("NewStaffPass@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(changeReq)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - Rejects non-OTP JWT tokens")
+    void testResetPasswordRejectsJwtTokens() throws Exception {
+        com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
+                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .otp("eyJhbGciOiJIUzI1NiJ9.fakeToken")
+                        .newPassword("SomePassword@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(resetReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
     }
 }

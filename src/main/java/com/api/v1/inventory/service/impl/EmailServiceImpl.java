@@ -7,6 +7,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -19,6 +20,7 @@ public class EmailServiceImpl implements EmailService {
     @Value("${spring.mail.username:}")
     private String mailFrom;
 
+    @Async
     @Override
     public void sendPasswordResetEmail(String toEmail, String otpOrToken) {
         log.info("Generating password reset OTP for [{}]: {}", toEmail, otpOrToken);
