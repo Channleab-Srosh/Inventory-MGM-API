@@ -192,10 +192,9 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/forgot-password - Success generates OTP token for admin email")
-    void testForgotPasswordAdminSuccess() throws Exception {
+    @DisplayName("POST /api/v1/auth/forgot-password - Disallowed for admin email")
+    void testForgotPasswordAdminRestricted() throws Exception {
         var adminUser = appUserRepository.findByUsernameIgnoreCase("admin").orElseThrow();
-        appUserTokenRepository.deleteByUserId(adminUser.getId());
 
         com.api.v1.inventory.model.request.ForgotPasswordRequest request =
                 com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
@@ -205,14 +204,9 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/forgot-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success", is(true)));
-
-        var tokens = appUserTokenRepository.findAll().stream()
-                .filter(t -> t.getUser().getId().equals(adminUser.getId()) && !t.isRevoked())
-                .toList();
-
-        org.junit.jupiter.api.Assertions.assertFalse(tokens.isEmpty(), "OTP token should be generated for ADMIN");
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Administrator accounts cannot be reset")));
     }
 
     @Test
@@ -230,7 +224,7 @@ class AuthControllerTest {
 
         com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
                 com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
-                        .token("998877")
+                        .otp("998877")
                         .newPassword("NewStaffPass@123")
                         .build();
 
@@ -264,7 +258,7 @@ class AuthControllerTest {
     void testResetPasswordInvalidTokenRejected() throws Exception {
         com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
                 com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
-                        .token("000000")
+                        .otp("000000")
                         .newPassword("AnotherPassword@123")
                         .build();
 
@@ -295,7 +289,7 @@ class AuthControllerTest {
 
         com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
                 com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
-                        .token(staffToken)
+                        .otp(staffToken)
                         .newPassword("UpdatedViaToken@123")
                         .build();
 

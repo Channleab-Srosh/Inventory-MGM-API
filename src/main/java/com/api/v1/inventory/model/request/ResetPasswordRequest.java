@@ -17,27 +17,11 @@ public class ResetPasswordRequest {
 
     @NotBlank(message = "OTP code is required")
     @Schema(description = "6-digit OTP code received via email", example = "569237")
-    @JsonAlias({"token", "resetToken"})
+    @JsonAlias({"token"})
     private String otp;
 
     @NotBlank(message = "New password is required")
     @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
     @Schema(description = "New password for account", example = "NewPassword@123")
     private String newPassword;
-
-    // Backward compatibility helper
-    public String getToken() {
-        return otp;
-    }
-
-    public void setToken(String token) {
-        this.otp = token;
-    }
-
-    public static class ResetPasswordRequestBuilder {
-        public ResetPasswordRequestBuilder token(String token) {
-            this.otp = token;
-            return this;
-        }
-    }
 }
