@@ -143,6 +143,15 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success", is(false)));
     }
 
+    @Autowired
+    private com.api.v1.inventory.repository.AppUserTokenRepository appUserTokenRepository;
+
+    @Autowired
+    private com.api.v1.inventory.repository.AppUserRepository appUserRepository;
+
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     @Test
     @DisplayName("GET /api/v1/auth/me - Failure when invalid token provided")
     void testGetCurrentUserInvalidToken() throws Exception {
@@ -150,5 +159,113 @@ class AuthControllerTest {
                         .header("Authorization", "Bearer invalid.token.value"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/forgot-password - Success for staff email and OTP generation")
+    void testForgotPasswordStaffSuccess() throws Exception {
+        com.api.v1.inventory.model.request.ForgotPasswordRequest request =
+                com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
+                        .email("staff@inventory.com")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", containsString("instructions have been sent")));
+
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        var tokens = appUserTokenRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(staffUser.getId()) && !t.isRevoked())
+                .toList();
+
+        org.junit.jupiter.api.Assertions.assertFalse(tokens.isEmpty(), "An active OTP token should be generated for staff");
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/forgot-password - Restricted for admin email (no token generated)")
+    void testForgotPasswordAdminRestricted() throws Exception {
+        var adminUser = appUserRepository.findByUsernameIgnoreCase("admin").orElseThrow();
+        appUserTokenRepository.deleteByUserId(adminUser.getId());
+
+        com.api.v1.inventory.model.request.ForgotPasswordRequest request =
+                com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
+                        .email("admin@inventory.com")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)));
+
+        var tokens = appUserTokenRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(adminUser.getId()) && !t.isRevoked())
+                .toList();
+
+        org.junit.jupiter.api.Assertions.assertTrue(tokens.isEmpty(), "No OTP token should be generated for ADMIN");
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - Success resets password and allows login")
+    void testResetPasswordStaffSuccess() throws Exception {
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        appUserTokenRepository.deleteByUserId(staffUser.getId());
+
+        var tokenEntity = appUserTokenRepository.save(com.api.v1.inventory.model.entity.AppUserToken.builder()
+                .user(staffUser)
+                .token("998877")
+                .expiresAt(java.time.Instant.now().plus(java.time.Duration.ofMinutes(15)))
+                .revoked(false)
+                .build());
+
+        com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
+                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .token("998877")
+                        .newPassword("NewStaffPass@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(resetReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", containsString("Password reset successfully")));
+
+        // Verify login works with new password
+        LoginRequest loginRequest = LoginRequest.builder()
+                .username("staff")
+                .password("NewStaffPass@123")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)));
+
+        // Restore password for other tests
+        staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        staffUser.setPassword(passwordEncoder.encode("Staff@12345"));
+        appUserRepository.save(staffUser);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - Invalid or revoked token rejected")
+    void testResetPasswordInvalidTokenRejected() throws Exception {
+        com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
+                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .token("000000")
+                        .newPassword("AnotherPassword@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(resetReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
     }
 }
