@@ -1,0 +1,591 @@
+package com.api.v1.inventory.controller;
+
+import com.api.v1.inventory.model.entity.AppUser;
+import com.api.v1.inventory.model.entity.Category;
+import com.api.v1.inventory.model.entity.Product;
+import com.api.v1.inventory.model.entity.StockTransaction;
+import com.api.v1.inventory.model.entity.Supplier;
+import com.api.v1.inventory.model.enumerate.TransactionType;
+import com.api.v1.inventory.model.request.CreateProductRequest;
+import com.api.v1.inventory.model.request.LoginRequest;
+import com.api.v1.inventory.model.request.UpdateProductRequest;
+import com.api.v1.inventory.repository.AppUserRepository;
+import com.api.v1.inventory.repository.CategoryRepository;
+import com.api.v1.inventory.repository.ProductRepository;
+import com.api.v1.inventory.repository.StockTransactionRepository;
+import com.api.v1.inventory.repository.SupplierRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
+import java.math.BigDecimal;
+
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class ProductControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private SupplierRepository supplierRepository;
+
+    @Autowired
+    private StockTransactionRepository stockTransactionRepository;
+
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    private String adminToken;
+    private String staffToken;
+    private Category sampleCategory;
+    private Supplier sampleSupplier;
+
+    @BeforeEach
+    void setupData() throws Exception {
+        adminToken = obtainToken("admin", "Admin@12345");
+        staffToken = obtainToken("staff", "Staff@12345");
+
+        long ts = System.currentTimeMillis();
+        sampleCategory = categoryRepository.save(Category.builder()
+                .name("ProdTestCat_" + ts)
+                .description("Category for product testing")
+                .build());
+
+        sampleSupplier = supplierRepository.save(Supplier.builder()
+                .name("ProdTestSup_" + ts)
+                .phone("097" + (ts % 1000000))
+                .email("sup" + ts + "@testprod.com")
+                .address("Phnom Penh")
+                .build());
+    }
+
+    private String obtainToken(String username, String password) throws Exception {
+        LoginRequest request = LoginRequest.builder()
+                .username(username)
+                .password(password)
+                .build();
+
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Admin successfully creates product with zero initial stock")
+    void testAdminCreatesProduct() throws Exception {
+        long ts = System.currentTimeMillis();
+        String sku = "SKU-TEST-" + ts;
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku(sku)
+                .name("Gaming Keyboard " + ts)
+                .description("Mechanical RGB keyboard")
+                .categoryId(sampleCategory.getId())
+                .supplierId(sampleSupplier.getId())
+                .unitPrice(new BigDecimal("79.99"))
+                .minimumStock(5)
+                .active(true)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.sku", is(sku)))
+                .andExpect(jsonPath("$.data.stockQuantity", is(0)))
+                .andExpect(jsonPath("$.data.lowStock", is(true)))
+                .andExpect(jsonPath("$.data.category.id", is(sampleCategory.getId().intValue())))
+                .andExpect(jsonPath("$.data.supplier.id", is(sampleSupplier.getId().intValue())));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Reject duplicate SKU case-insensitively")
+    void testCreateProductDuplicateSkuRejected() throws Exception {
+        long ts = System.currentTimeMillis();
+        String sku = "SKU-DUP-" + ts;
+
+        productRepository.save(Product.builder()
+                .sku(sku)
+                .name("Original Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("10.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku(sku.toLowerCase())
+                .name("Duplicate SKU Item")
+                .categoryId(sampleCategory.getId())
+                .unitPrice(new BigDecimal("20.00"))
+                .minimumStock(2)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("already exists")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Reject invalid Category ID")
+    void testCreateProductInvalidCategoryRejected() throws Exception {
+        long ts = System.currentTimeMillis();
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku("SKU-INV-CAT-" + ts)
+                .name("Invalid Category Product")
+                .categoryId(999999L)
+                .unitPrice(new BigDecimal("15.00"))
+                .minimumStock(2)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Category not found")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Reject invalid Supplier ID")
+    void testCreateProductInvalidSupplierRejected() throws Exception {
+        long ts = System.currentTimeMillis();
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku("SKU-INV-SUP-" + ts)
+                .name("Invalid Supplier Product")
+                .categoryId(sampleCategory.getId())
+                .supplierId(999999L)
+                .unitPrice(new BigDecimal("15.00"))
+                .minimumStock(2)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Supplier not found")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Validation rejects negative price and missing fields")
+    void testCreateProductValidationFailures() throws Exception {
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku("  ")
+                .name("")
+                .unitPrice(new BigDecimal("-10.00"))
+                .minimumStock(-1)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.errors", notNullValue()));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Staff cannot create product")
+    void testStaffCannotCreateProduct() throws Exception {
+        long ts = System.currentTimeMillis();
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku("SKU-STAFF-" + ts)
+                .name("Staff Product")
+                .categoryId(sampleCategory.getId())
+                .unitPrice(new BigDecimal("25.00"))
+                .minimumStock(2)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Unauthenticated request returns 401")
+    void testUnauthenticatedCannotCreateProduct() throws Exception {
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku("SKU-NOAUTH")
+                .name("No Auth")
+                .categoryId(sampleCategory.getId())
+                .unitPrice(new BigDecimal("10.00"))
+                .minimumStock(1)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/products - Admin and Staff can list, search, and filter products")
+    void testAdminAndStaffCanListAndSearchProducts() throws Exception {
+        mockMvc.perform(get("/api/v1/products")
+                        .param("categoryId", sampleCategory.getId().toString())
+                        .header("Authorization", "Bearer " + staffToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.content", notNullValue()));
+
+        mockMvc.perform(get("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.content", notNullValue()));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/products/{id} - Retrieve product by ID")
+    void testAdminAndStaffCanGetProductById() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-GETID-" + ts)
+                .name("Product for Get ID")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("50.00"))
+                .stockQuantity(15)
+                .minimumStock(5)
+                .active(true)
+                .build());
+
+        mockMvc.perform(get("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + staffToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.id", is(product.getId().intValue())))
+                .andExpect(jsonPath("$.data.sku", is(product.getSku())))
+                .andExpect(jsonPath("$.data.lowStock", is(false)));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/products/sku/{sku} - Retrieve product by SKU")
+    void testAdminAndStaffCanGetProductBySku() throws Exception {
+        long ts = System.currentTimeMillis();
+        String sku = "SKU-FINDBYSKU-" + ts;
+        Product product = productRepository.save(Product.builder()
+                .sku(sku)
+                .name("Find by SKU Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("35.00"))
+                .stockQuantity(2)
+                .minimumStock(5)
+                .active(true)
+                .build());
+
+        mockMvc.perform(get("/api/v1/products/sku/" + sku)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.id", is(product.getId().intValue())))
+                .andExpect(jsonPath("$.data.lowStock", is(true)));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/products/{id} - Nonexistent ID returns 404")
+    void testGetNonExistentProductReturns404() throws Exception {
+        mockMvc.perform(get("/api/v1/products/999999")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/products/{id} - Admin updates product successfully")
+    void testAdminUpdatesProductSuccessfully() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-PREUPDATE-" + ts)
+                .name("Pre Update Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("20.00"))
+                .stockQuantity(10)
+                .minimumStock(2)
+                .active(true)
+                .build());
+
+        UpdateProductRequest request = UpdateProductRequest.builder()
+                .sku("SKU-POSTUPDATE-" + ts)
+                .name("Post Update Name")
+                .description("Updated description")
+                .categoryId(sampleCategory.getId())
+                .supplierId(sampleSupplier.getId())
+                .unitPrice(new BigDecimal("39.99"))
+                .minimumStock(5)
+                .active(true)
+                .build();
+
+        mockMvc.perform(put("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.sku", is(request.getSku())))
+                .andExpect(jsonPath("$.data.name", is(request.getName())))
+                .andExpect(jsonPath("$.data.unitPrice", is(39.99)))
+                .andExpect(jsonPath("$.data.stockQuantity", is(10))); // Preserved!
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/products/{id} - General product update cannot modify stock quantity")
+    void testUpdateProductCannotChangeStockQuantity() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-IMMUTABLE-STOCK-" + ts)
+                .name("Protected Stock Product")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("100.00"))
+                .stockQuantity(42) // Original stock
+                .minimumStock(5)
+                .active(true)
+                .build());
+
+        // Attempting to send custom JSON with stockQuantity: 9999
+        String jsonPayload = """
+                {
+                    "sku": "%s",
+                    "name": "Protected Stock Product Renamed",
+                    "categoryId": %d,
+                    "unitPrice": 105.00,
+                    "minimumStock": 5,
+                    "active": true,
+                    "stockQuantity": 9999
+                }
+                """.formatted(product.getSku(), sampleCategory.getId());
+
+        mockMvc.perform(put("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.stockQuantity", is(42))); // Stock MUST remain 42!
+
+        Product reloaded = productRepository.findById(product.getId()).orElseThrow();
+        assertEquals(42, reloaded.getStockQuantity(), "Stock quantity in database must remain 42");
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/products/{id} - Reject update with SKU already in use")
+    void testUpdateProductDuplicateSkuRejected() throws Exception {
+        long ts = System.currentTimeMillis();
+        String existingSku = "SKU-EXISTING-" + ts;
+        productRepository.save(Product.builder()
+                .sku(existingSku)
+                .name("Existing SKU Holder")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("10.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        Product productToUpdate = productRepository.save(Product.builder()
+                .sku("SKU-TOUPDATE-" + ts)
+                .name("To Update Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("15.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        UpdateProductRequest request = UpdateProductRequest.builder()
+                .sku(existingSku.toLowerCase())
+                .name("Colliding SKU Item")
+                .categoryId(sampleCategory.getId())
+                .unitPrice(new BigDecimal("15.00"))
+                .minimumStock(1)
+                .active(true)
+                .build();
+
+        mockMvc.perform(put("/api/v1/products/" + productToUpdate.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("already exists")));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/products/{id} - Staff cannot update product")
+    void testStaffCannotUpdateProduct() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-STAFFNOUPDATE-" + ts)
+                .name("Staff Cannot Update")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("20.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        UpdateProductRequest request = UpdateProductRequest.builder()
+                .sku(product.getSku())
+                .name("Hacked Name")
+                .categoryId(sampleCategory.getId())
+                .unitPrice(new BigDecimal("20.00"))
+                .minimumStock(1)
+                .active(true)
+                .build();
+
+        mockMvc.perform(put("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{id} - Admin deletes product with zero stock and no transactions")
+    void testAdminDeletesProductWithoutTransactionsOrStock() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-TODELETE-" + ts)
+                .name("To Delete Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("10.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        mockMvc.perform(delete("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", containsString("deleted successfully")));
+
+        mockMvc.perform(get("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{id} - Reject deletion when product has positive stock")
+    void testAdminDeleteProductWithPositiveStockRejected() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-NONZEROSTOCK-" + ts)
+                .name("Has Stock Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("10.00"))
+                .stockQuantity(25) // Non-zero stock
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        mockMvc.perform(delete("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("non-zero stock quantity")));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{id} - Reject deletion when product has transaction history")
+    void testAdminDeleteProductWithTransactionHistoryRejected() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-HASTRANSACTIONS-" + ts)
+                .name("Has Transactions Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("10.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        AppUser adminUser = appUserRepository.findByUsernameIgnoreCase("admin").orElseThrow();
+
+        stockTransactionRepository.save(StockTransaction.builder()
+                .product(product)
+                .transactionType(TransactionType.STOCK_IN)
+                .quantity(10)
+                .quantityBefore(0)
+                .quantityAfter(10)
+                .note("Historical transaction record")
+                .createdBy(adminUser)
+                .build());
+
+        mockMvc.perform(delete("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("associated transaction records")));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{id} - Staff cannot delete product")
+    void testStaffCannotDeleteProduct() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-STAFFNODELETE-" + ts)
+                .name("Staff Cannot Delete Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("10.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        mockMvc.perform(delete("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + staffToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{id} - Nonexistent product returns 404")
+    void testDeleteNonExistentProductReturns404() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/999999")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+}
