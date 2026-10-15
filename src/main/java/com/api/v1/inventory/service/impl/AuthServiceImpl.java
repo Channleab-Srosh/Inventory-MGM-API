@@ -115,7 +115,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
-        String tokenStr = request.getToken().trim();
+        String tokenStr = (request.getOtp() != null ? request.getOtp() : request.getToken()).trim();
 
         if (tokenStr.startsWith("Bearer ")) {
             tokenStr = tokenStr.substring(7).trim();
