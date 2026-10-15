@@ -169,9 +169,12 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/v1/auth/forgot-password - Success for staff email and OTP generation")
     void testForgotPasswordStaffSuccess() throws Exception {
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        appUserTokenRepository.deleteByUserId(staffUser.getId());
+
         com.api.v1.inventory.model.request.ForgotPasswordRequest request =
                 com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
-                        .email("staff@inventory.com")
+                        .email(staffUser.getEmail())
                         .build();
 
         mockMvc.perform(post("/api/v1/auth/forgot-password")
@@ -181,7 +184,6 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", containsString("instructions have been sent")));
 
-        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
         var tokens = appUserTokenRepository.findAll().stream()
                 .filter(t -> t.getUser().getId().equals(staffUser.getId()) && !t.isRevoked())
                 .toList();
