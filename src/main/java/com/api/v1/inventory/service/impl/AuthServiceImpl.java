@@ -90,11 +90,6 @@ public class AuthServiceImpl implements AuthService {
 
         AppUser user = userOpt.get();
 
-        if (user.getRole() == Role.ADMIN) {
-            log.warn("Password reset requested for ADMIN account ({}). Admin self-service reset is restricted.", user.getUsername());
-            return;
-        }
-
         if (!user.isActive()) {
             log.warn("Password reset requested for disabled account: {}", user.getUsername());
             return;
@@ -162,11 +157,6 @@ public class AuthServiceImpl implements AuthService {
         }
 
         AppUser user = tokenEntity.getUser();
-        if (user.getRole() == Role.ADMIN) {
-            tokenEntity.setRevoked(true);
-            userTokenRepository.save(tokenEntity);
-            throw new BadRequestException("Administrator accounts cannot be reset via self-service.");
-        }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);

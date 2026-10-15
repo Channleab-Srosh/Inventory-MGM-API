@@ -190,14 +190,14 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/forgot-password - Restricted for admin email (no token generated)")
-    void testForgotPasswordAdminRestricted() throws Exception {
+    @DisplayName("POST /api/v1/auth/forgot-password - Success generates OTP token for admin email")
+    void testForgotPasswordAdminSuccess() throws Exception {
         var adminUser = appUserRepository.findByUsernameIgnoreCase("admin").orElseThrow();
         appUserTokenRepository.deleteByUserId(adminUser.getId());
 
         com.api.v1.inventory.model.request.ForgotPasswordRequest request =
                 com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
-                        .email("admin@inventory.com")
+                        .email(adminUser.getEmail())
                         .build();
 
         mockMvc.perform(post("/api/v1/auth/forgot-password")
@@ -210,7 +210,7 @@ class AuthControllerTest {
                 .filter(t -> t.getUser().getId().equals(adminUser.getId()) && !t.isRevoked())
                 .toList();
 
-        org.junit.jupiter.api.Assertions.assertTrue(tokens.isEmpty(), "No OTP token should be generated for ADMIN");
+        org.junit.jupiter.api.Assertions.assertFalse(tokens.isEmpty(), "OTP token should be generated for ADMIN");
     }
 
     @Test
