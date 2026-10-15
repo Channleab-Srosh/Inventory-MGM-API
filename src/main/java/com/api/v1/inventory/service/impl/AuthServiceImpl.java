@@ -18,6 +18,7 @@ import com.api.v1.inventory.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -47,14 +48,20 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername().trim(), request.getPassword())
-        );
+        String username = request.getUsername().trim();
 
-        UserDetails userDetails = appUserService.loadUserByUsername(request.getUsername().trim());
-        AppUser user = userRepository.findByUsernameIgnoreCase(request.getUsername().trim())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + request.getUsername()));
+        AppUser user = userRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new BadCredentialsException("Username does not exist"));
 
+        if (!user.isActive()) {
+            throw new BadCredentialsException("Account is disabled. Please contact administrator.");
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Incorrect password");
+        }
+
+        UserDetails userDetails = appUserService.loadUserByUsername(user.getUsername());
         String token = jwtService.generateToken(userDetails, user.getRole().name());
         long expiresIn = appProperty.getJwt().getAccessExpiration() / 1000;
 
@@ -64,6 +71,7 @@ public class AuthServiceImpl implements AuthService {
                 .token(token)
                 .tokenType("Bearer")
                 .expiresIn(expiresIn)
+                .unit("seconds")
                 .username(user.getUsername())
                 .role(user.getRole().name())
                 .build();

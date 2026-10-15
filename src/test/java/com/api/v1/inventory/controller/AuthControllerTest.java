@@ -76,7 +76,9 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.message", containsString("Invalid username or password")));
+                .andExpect(jsonPath("$.message", is("Incorrect password")))
+                .andExpect(jsonPath("$.errors[0].field", is("password")))
+                .andExpect(jsonPath("$.errors[0].message", is("Incorrect password")));
     }
 
     @Test
@@ -91,7 +93,10 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.success", is(false)));
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Username does not exist")))
+                .andExpect(jsonPath("$.errors[0].field", is("username")))
+                .andExpect(jsonPath("$.errors[0].message", is("Username does not exist")));
     }
 
     @Test

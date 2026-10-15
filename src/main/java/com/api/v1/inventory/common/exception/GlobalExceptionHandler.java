@@ -96,8 +96,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
+        String message = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage()
+                : "Invalid username or password";
+
+        List<ApiResponse.FieldErrorDetail> errors = null;
+        if ("Username does not exist".equalsIgnoreCase(message)) {
+            errors = List.of(new ApiResponse.FieldErrorDetail("username", message));
+        } else if ("Incorrect password".equalsIgnoreCase(message)) {
+            errors = List.of(new ApiResponse.FieldErrorDetail("password", message));
+        }
+
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Invalid username or password"));
+                .body(ApiResponse.error(message, errors));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
