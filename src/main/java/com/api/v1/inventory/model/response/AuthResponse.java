@@ -15,6 +15,8 @@ public class AuthResponse {
     @Builder.Default
     private String tokenType = "Bearer";
     private Long expiresIn;
+    @Builder.Default
+    private String unit = "seconds";
     private String username;
     private String role;
 }

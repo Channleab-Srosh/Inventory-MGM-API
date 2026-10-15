@@ -4,6 +4,7 @@ import com.api.v1.inventory.common.exception.ConflictException;
 import com.api.v1.inventory.common.exception.ResourceNotFoundException;
 import com.api.v1.inventory.common.response.PageResponse;
 import com.api.v1.inventory.model.entity.AppUser;
+import com.api.v1.inventory.model.enumerate.Role;
 import com.api.v1.inventory.model.request.CreateUserRequest;
 import com.api.v1.inventory.model.request.UpdateUserRequest;
 import com.api.v1.inventory.model.request.UpdateUserStatusRequest;
@@ -107,6 +108,11 @@ public class AppUserServiceImpl implements AppUserService {
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
         AppUser user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        AppUser currentUser = currentUserService.getCurrentUser();
+        if (currentUser.getId().equals(user.getId()) && user.getRole() == Role.ADMIN && request.getRole() != Role.ADMIN) {
+            throw new ConflictException("You cannot remove your own administrator role");
+        }
 
         if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
             String normalizedEmail = request.getEmail().trim().toLowerCase();

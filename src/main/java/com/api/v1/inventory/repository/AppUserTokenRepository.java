@@ -11,5 +11,6 @@ public interface AppUserTokenRepository extends JpaRepository<AppUserToken, Long
 
     Optional<AppUserToken> findByTokenAndRevokedFalse(String token);
 
+    @org.springframework.transaction.annotation.Transactional
     void deleteByUserId(Long userId);
 }
