@@ -273,4 +273,52 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
     }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - Success resets password using active JWT access token")
+    void testResetPasswordWithJwtAccessTokenSuccess() throws Exception {
+        LoginRequest loginStaffReq = LoginRequest.builder()
+                .username("staff")
+                .password("Staff@12345")
+                .build();
+
+        MvcResult loginRes = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginStaffReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String staffToken = objectMapper.readTree(loginRes.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
+                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .token(staffToken)
+                        .newPassword("UpdatedViaToken@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(resetReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", containsString("Password reset successfully")));
+
+        // Verify login works with the updated password
+        LoginRequest loginRequest = LoginRequest.builder()
+                .username("staff")
+                .password("UpdatedViaToken@123")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)));
+
+        // Restore original password for other tests
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        staffUser.setPassword(passwordEncoder.encode("Staff@12345"));
+        appUserRepository.save(staffUser);
+    }
 }

@@ -121,8 +121,39 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         String tokenStr = request.getToken().trim();
+
+        if (tokenStr.startsWith("Bearer ")) {
+            tokenStr = tokenStr.substring(7).trim();
+        }
+
+        // Support resetting password using an active JWT access token
+        if (tokenStr.startsWith("ey") && tokenStr.contains(".")) {
+            try {
+                String username = jwtService.extractUsername(tokenStr);
+                UserDetails userDetails = appUserService.loadUserByUsername(username);
+
+                if (!jwtService.isTokenValid(tokenStr, userDetails)) {
+                    throw new BadRequestException("Access token is invalid or expired. Please login again.");
+                }
+
+                AppUser user = userRepository.findByUsernameIgnoreCase(username)
+                        .orElseThrow(() -> new BadRequestException("User not found: " + username));
+
+                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                userRepository.save(user);
+
+                log.info("Password successfully updated via access token for user id={}, username={}", user.getId(), user.getUsername());
+                return;
+            } catch (BadRequestException bre) {
+                throw bre;
+            } catch (Exception e) {
+                throw new BadRequestException("Invalid or expired access token: " + e.getMessage());
+            }
+        }
+
+        // Otherwise process as OTP code from forgot-password
         AppUserToken tokenEntity = userTokenRepository.findByTokenAndRevokedFalse(tokenStr)
-                .orElseThrow(() -> new BadRequestException("Invalid or expired password reset token"));
+                .orElseThrow(() -> new BadRequestException("Invalid or expired password reset token / OTP code"));
 
         if (tokenEntity.getExpiresAt().isBefore(Instant.now())) {
             tokenEntity.setRevoked(true);
