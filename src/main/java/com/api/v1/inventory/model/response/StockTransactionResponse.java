@@ -20,6 +20,7 @@ public class StockTransactionResponse {
     private String productSku;
     private String productName;
     private TransactionType transactionType;
+    private com.api.v1.inventory.model.enumerate.UnitOfMeasure unitOfMeasure;
     private Integer quantity;
     private Integer quantityBefore;
     private Integer quantityAfter;
@@ -38,6 +39,7 @@ public class StockTransactionResponse {
                 .productSku(tx.getProduct() != null ? tx.getProduct().getSku() : null)
                 .productName(tx.getProduct() != null ? tx.getProduct().getName() : null)
                 .transactionType(tx.getTransactionType())
+                .unitOfMeasure(tx.getProduct() != null ? tx.getProduct().getUnitOfMeasure() : null)
                 .quantity(tx.getQuantity())
                 .quantityBefore(tx.getQuantityBefore())
                 .quantityAfter(tx.getQuantityAfter())

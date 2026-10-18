@@ -728,4 +728,106 @@ class ProductControllerTest {
         assertEquals(originalSku, reloaded.getSku(), "SKU must be unchanged");
         assertEquals("Preserved Fields Product", reloaded.getName(), "Name must be unchanged");
     }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Create product with explicit UOM (BOX)")
+    void testCreateProductWithExplicitUom() throws Exception {
+        long ts = System.currentTimeMillis();
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku("SKU-UOM-BOX-" + ts)
+                .name("Boxed Item")
+                .categoryId(sampleCategory.getId())
+                .unitOfMeasure(com.api.v1.inventory.model.enumerate.UnitOfMeasure.BOX)
+                .unitPrice(new BigDecimal("120.00"))
+                .minimumStock(10)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.unitOfMeasure", is("BOX")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Create product with omitted UOM defaults to PCS")
+    void testCreateProductWithDefaultUom() throws Exception {
+        long ts = System.currentTimeMillis();
+        String json = """
+                {
+                    "sku": "SKU-UOM-DEFAULT-%d",
+                    "name": "Default UOM Item",
+                    "categoryId": %d,
+                    "unitPrice": 50.00,
+                    "minimumStock": 5
+                }
+                """.formatted(ts, sampleCategory.getId());
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.unitOfMeasure", is("PCS")));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/products/{id} - Update product UOM from PCS to KG")
+    void testUpdateProductUom() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-UOM-TOUPDATE-" + ts)
+                .name("Item Before UOM Update")
+                .category(sampleCategory)
+                .unitOfMeasure(com.api.v1.inventory.model.enumerate.UnitOfMeasure.PCS)
+                .unitPrice(new BigDecimal("30.00"))
+                .stockQuantity(0)
+                .minimumStock(2)
+                .active(true)
+                .build());
+
+        UpdateProductRequest updateReq = UpdateProductRequest.builder()
+                .sku(product.getSku())
+                .name("Item After UOM Update")
+                .categoryId(sampleCategory.getId())
+                .unitOfMeasure(com.api.v1.inventory.model.enumerate.UnitOfMeasure.KG)
+                .unitPrice(new BigDecimal("35.00"))
+                .minimumStock(2)
+                .active(true)
+                .build();
+
+        mockMvc.perform(put("/api/v1/products/" + product.getId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.unitOfMeasure", is("KG")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - Reject invalid UOM string with 400 Bad Request")
+    void testCreateProductWithInvalidUomRejected() throws Exception {
+        long ts = System.currentTimeMillis();
+        String json = """
+                {
+                    "sku": "SKU-UOM-INVALID-%d",
+                    "name": "Invalid UOM Item",
+                    "categoryId": %d,
+                    "unitOfMeasure": "INVALID_UNIT",
+                    "unitPrice": 50.00,
+                    "minimumStock": 5
+                }
+                """.formatted(ts, sampleCategory.getId());
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
 }

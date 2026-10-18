@@ -352,6 +352,7 @@ class StockControllerTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.id", is(txId.intValue())))
                 .andExpect(jsonPath("$.data.quantity", is(7)))
+                .andExpect(jsonPath("$.data.unitOfMeasure", is("PCS")))
                 .andExpect(jsonPath("$.data.note", is("Specific tx test")));
     }
 

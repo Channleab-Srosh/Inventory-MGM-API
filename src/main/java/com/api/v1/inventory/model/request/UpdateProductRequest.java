@@ -34,6 +34,9 @@ public class UpdateProductRequest {
 
     private Long supplierId;
 
+    @Builder.Default
+    private com.api.v1.inventory.model.enumerate.UnitOfMeasure unitOfMeasure = com.api.v1.inventory.model.enumerate.UnitOfMeasure.PCS;
+
     @NotNull(message = "Unit price is required")
     @DecimalMin(value = "0.00", message = "Unit price cannot be negative")
     private BigDecimal unitPrice;

@@ -48,12 +48,17 @@ public class ProductServiceImpl implements ProductService {
                     .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id: " + request.getSupplierId()));
         }
 
+        com.api.v1.inventory.model.enumerate.UnitOfMeasure uom = request.getUnitOfMeasure() != null
+                ? request.getUnitOfMeasure()
+                : com.api.v1.inventory.model.enumerate.UnitOfMeasure.PCS;
+
         Product product = Product.builder()
                 .sku(trimmedSku)
                 .name(request.getName().trim())
                 .description(request.getDescription() != null ? request.getDescription().trim() : null)
                 .category(category)
                 .supplier(supplier)
+                .unitOfMeasure(uom)
                 .unitPrice(request.getUnitPrice())
                 .stockQuantity(0)
                 .minimumStock(request.getMinimumStock() != null ? request.getMinimumStock() : 0)
@@ -137,6 +142,9 @@ public class ProductServiceImpl implements ProductService {
         product.setUnitPrice(request.getUnitPrice());
         product.setMinimumStock(request.getMinimumStock());
         product.setActive(request.getActive());
+        if (request.getUnitOfMeasure() != null) {
+            product.setUnitOfMeasure(request.getUnitOfMeasure());
+        }
         // NOTE: product.stockQuantity is intentionally untouched to protect inventory integrity
 
         Product updated = productRepository.save(product);

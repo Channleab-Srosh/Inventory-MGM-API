@@ -54,8 +54,8 @@ All tables have strict check constraints, foreign keys with `ON DELETE RESTRICT`
 * `app_users`: User credentials, BCrypt password hash, full name, phone, role (`ADMIN`, `STAFF`), active status.
 * `categories`: Inventory classifications with case-insensitive unique name constraint.
 * `suppliers`: Supplier directory with phone, email, and address.
-* `products`: Inventory catalog with SKU (unique), unit price (`CHECK >= 0`), stock quantity (`CHECK >= 0`), minimum stock threshold, and optimistic lock `@Version`.
-* `stock_transactions`: Immutable audit log of all stock changes (`STOCK_IN`, `STOCK_OUT`), before-and-after quantities, timestamp, and user audit trail.
+* `products`: Inventory catalog with SKU (unique), unit of measure (`PCS`, `BOX`, `PACK`, `BOTTLE`, `CAN`, `KG`, `LITER`), unit price (`CHECK >= 0`), stock quantity (`CHECK >= 0`), minimum stock threshold, and optimistic lock `@Version`.
+* `stock_transactions`: Immutable audit log of all stock changes (`STOCK_IN`, `STOCK_OUT`), unit of measure, before-and-after quantities, timestamp, and user audit trail.
 * `app_user_tokens`: Secure OTP tokens for password reset verification.
 
 ---

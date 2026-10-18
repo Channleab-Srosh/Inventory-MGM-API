@@ -21,6 +21,7 @@ public class ProductResponse {
     private String description;
     private CategoryResponse category;
     private SupplierResponse supplier;
+    private com.api.v1.inventory.model.enumerate.UnitOfMeasure unitOfMeasure;
     private BigDecimal unitPrice;
     private Integer stockQuantity;
     private Integer minimumStock;
@@ -46,6 +47,7 @@ public class ProductResponse {
                 .description(product.getDescription())
                 .category(CategoryResponse.fromEntity(product.getCategory()))
                 .supplier(SupplierResponse.fromEntity(product.getSupplier()))
+                .unitOfMeasure(product.getUnitOfMeasure())
                 .unitPrice(product.getUnitPrice())
                 .stockQuantity(product.getStockQuantity())
                 .minimumStock(product.getMinimumStock())

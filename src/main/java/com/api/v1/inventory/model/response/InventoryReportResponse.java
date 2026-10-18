@@ -20,6 +20,7 @@ public class InventoryReportResponse {
     private String name;
     private String categoryName;
     private String supplierName;
+    private com.api.v1.inventory.model.enumerate.UnitOfMeasure unitOfMeasure;
     private BigDecimal unitPrice;
     private Integer stockQuantity;
     private Integer minimumStock;
@@ -47,6 +48,7 @@ public class InventoryReportResponse {
                 .name(product.getName())
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .supplierName(product.getSupplier() != null ? product.getSupplier().getName() : null)
+                .unitOfMeasure(product.getUnitOfMeasure())
                 .unitPrice(unitPrice)
                 .stockQuantity(qty)
                 .minimumStock(product.getMinimumStock() != null ? product.getMinimumStock() : 0)

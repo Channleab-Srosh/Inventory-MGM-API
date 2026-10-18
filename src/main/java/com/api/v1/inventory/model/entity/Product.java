@@ -13,7 +13,8 @@ import java.time.Instant;
         @Index(name = "idx_products_sku_lower", columnList = "sku"),
         @Index(name = "idx_products_category", columnList = "category_id"),
         @Index(name = "idx_products_supplier", columnList = "supplier_id"),
-        @Index(name = "idx_products_active", columnList = "active")
+        @Index(name = "idx_products_active", columnList = "active"),
+        @Index(name = "idx_products_unit_of_measure", columnList = "unit_of_measure")
 })
 @Getter
 @Setter
@@ -42,6 +43,11 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id")
     private Supplier supplier;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unit_of_measure", nullable = false, length = 20)
+    @Builder.Default
+    private com.api.v1.inventory.model.enumerate.UnitOfMeasure unitOfMeasure = com.api.v1.inventory.model.enumerate.UnitOfMeasure.PCS;
 
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;

@@ -185,6 +185,7 @@ class ReportControllerTest {
                 .andExpect(jsonPath("$.message", is("Inventory report retrieved successfully")))
                 .andExpect(jsonPath("$.data.content", not(empty())))
                 .andExpect(jsonPath("$.data.content[0].sku", is("REP-PROD-001")))
+                .andExpect(jsonPath("$.data.content[0].unitOfMeasure", is("PCS")))
                 .andExpect(jsonPath("$.data.content[0].totalValue", notNullValue()));
     }
 
