@@ -87,8 +87,35 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+        String message = "Malformed JSON request or invalid field format.";
+
+        Throwable cause = ex.getCause();
+        while (cause != null) {
+            if (cause instanceof tools.jackson.databind.exc.InvalidFormatException ife) {
+                String field = (ife.getPath() != null && !ife.getPath().isEmpty())
+                        ? ife.getPath().get(ife.getPath().size() - 1).getPropertyName()
+                        : "field";
+                if (field == null) {
+                    field = "field";
+                }
+                Object value = ife.getValue();
+                Class<?> targetType = ife.getTargetType();
+
+                if (targetType != null && targetType.isEnum()) {
+                    message = String.format("Invalid %s '%s'. Allowed: %s",
+                            field, value, java.util.Arrays.toString(targetType.getEnumConstants()));
+                } else {
+                    String typeName = targetType != null ? targetType.getSimpleName() : "Type";
+                    message = String.format("Invalid %s '%s'. Expected %s.",
+                            field, value, typeName);
+                }
+                break;
+            }
+            cause = cause.getCause();
+        }
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Malformed JSON request or invalid field format."));
+                .body(ApiResponse.error(message));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

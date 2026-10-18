@@ -830,4 +830,96 @@ class ProductControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)));
     }
+
+    @Test
+    @DisplayName("POST /api/v1/products - unitOfMeasure 'ABC' returns 400 with allowed enum values")
+    void testCreateProduct_UnitOfMeasureABC() throws Exception {
+        String json = """
+                {
+                    "sku": "SKU-UOM-ABC-%d",
+                    "name": "Invalid Enum ABC",
+                    "categoryId": %d,
+                    "unitOfMeasure": "ABC",
+                    "unitPrice": 10.00,
+                    "minimumStock": 5
+                }
+                """.formatted(System.currentTimeMillis(), sampleCategory.getId());
+
+        MvcResult result = mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Invalid unitOfMeasure 'ABC'. Allowed: [PCS, BOX, PACK, BOTTLE, CAN, KG, LITER]")))
+                .andReturn();
+        System.out.println("RESPONSE (unitOfMeasure 'ABC'): " + result.getResponse().getContentAsString());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - unitOfMeasure 'pcs' returns 400 with allowed enum values")
+    void testCreateProduct_UnitOfMeasurePcs() throws Exception {
+        String json = """
+                {
+                    "sku": "SKU-UOM-PCS-%d",
+                    "name": "Invalid Enum pcs",
+                    "categoryId": %d,
+                    "unitOfMeasure": "pcs",
+                    "unitPrice": 10.00,
+                    "minimumStock": 5
+                }
+                """.formatted(System.currentTimeMillis(), sampleCategory.getId());
+
+        MvcResult result = mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Invalid unitOfMeasure 'pcs'. Allowed: [PCS, BOX, PACK, BOTTLE, CAN, KG, LITER]")))
+                .andReturn();
+        System.out.println("RESPONSE (unitOfMeasure 'pcs'): " + result.getResponse().getContentAsString());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - unitPrice 'abc' returns 400 with expected type")
+    void testCreateProduct_UnitPriceAbc() throws Exception {
+        String json = """
+                {
+                    "sku": "SKU-PRICE-ABC-%d",
+                    "name": "Invalid Price abc",
+                    "categoryId": %d,
+                    "unitOfMeasure": "PCS",
+                    "unitPrice": "abc",
+                    "minimumStock": 5
+                }
+                """.formatted(System.currentTimeMillis(), sampleCategory.getId());
+
+        MvcResult result = mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Invalid unitPrice 'abc'. Expected BigDecimal.")))
+                .andReturn();
+        System.out.println("RESPONSE (unitPrice 'abc'): " + result.getResponse().getContentAsString());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/products - truly broken JSON returns 400 with fallback message")
+    void testCreateProduct_TrulyBrokenJson() throws Exception {
+        String json = "{ \"sku\": \"SKU-BROKEN\", \"name\": ";
+
+        MvcResult result = mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Malformed JSON request or invalid field format.")))
+                .andReturn();
+        System.out.println("RESPONSE (truly broken JSON): " + result.getResponse().getContentAsString());
+    }
 }
+
