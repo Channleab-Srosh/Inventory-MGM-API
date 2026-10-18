@@ -19,11 +19,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.api.v1.inventory.common.pagination.PaginationValidator;
+import java.util.List;
+
+import io.swagger.v3.oas.annotations.Parameter;
+
 @RestController
 @RequestMapping("/api/v1/suppliers")
 @RequiredArgsConstructor
 @Tag(name = "Supplier Management", description = "Endpoints for managing inventory suppliers")
 public class SupplierController {
+
+    public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
+            "id", "name", "phone", "email", "address", "createdAt", "updatedAt"
+    );
 
     private final SupplierService supplierService;
 
@@ -41,10 +50,12 @@ public class SupplierController {
     @GetMapping
     @Operation(summary = "Get all suppliers with pagination and search (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<SupplierResponse>>> getAllSuppliers(
+            @Parameter(description = "Filter suppliers by name or phone (substring)")
             @RequestParam(required = false) String search,
             @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        PageResponse<SupplierResponse> response = supplierService.getAllSuppliers(search, pageable);
+        Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
+        PageResponse<SupplierResponse> response = supplierService.getAllSuppliers(search, validatedPageable);
         return ResponseEntity.ok(ApiResponse.ok(response, "Suppliers retrieved successfully"));
     }
 

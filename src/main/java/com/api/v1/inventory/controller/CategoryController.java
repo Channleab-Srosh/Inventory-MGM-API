@@ -19,11 +19,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.api.v1.inventory.common.pagination.PaginationValidator;
+import java.util.List;
+
+import io.swagger.v3.oas.annotations.Parameter;
+
 @RestController
 @RequestMapping("/api/v1/categories")
 @RequiredArgsConstructor
 @Tag(name = "Category Management", description = "Endpoints for managing inventory categories")
 public class CategoryController {
+
+    public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
+            "id", "name", "createdAt", "updatedAt"
+    );
 
     private final CategoryService categoryService;
 
@@ -41,10 +50,12 @@ public class CategoryController {
     @GetMapping
     @Operation(summary = "Get all categories with pagination and search (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<CategoryResponse>>> getAllCategories(
+            @Parameter(description = "Filter categories by name (case-insensitive substring)")
             @RequestParam(required = false) String search,
             @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        PageResponse<CategoryResponse> response = categoryService.getAllCategories(search, pageable);
+        Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
+        PageResponse<CategoryResponse> response = categoryService.getAllCategories(search, validatedPageable);
         return ResponseEntity.ok(ApiResponse.ok(response, "Categories retrieved successfully"));
     }
 

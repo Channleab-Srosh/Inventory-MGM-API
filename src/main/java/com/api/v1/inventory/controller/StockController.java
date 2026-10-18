@@ -21,11 +21,20 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 
+import com.api.v1.inventory.common.pagination.PaginationValidator;
+import java.util.List;
+
+import io.swagger.v3.oas.annotations.Parameter;
+
 @RestController
 @RequestMapping("/api/v1/stock")
 @RequiredArgsConstructor
 @Tag(name = "Stock Operations", description = "Endpoints for stock management and transaction audit history")
 public class StockController {
+
+    public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
+            "id", "quantity", "transactionType", "createdAt"
+    );
 
     private final StockService stockService;
 
@@ -52,15 +61,21 @@ public class StockController {
     @GetMapping("/history")
     @Operation(summary = "Get transaction audit history with filters and pagination (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<StockTransactionResponse>>> getHistory(
+            @Parameter(description = "Filter transactions by product ID")
             @RequestParam(required = false) Long productId,
+            @Parameter(description = "Filter by transaction type")
             @RequestParam(required = false) TransactionType type,
+            @Parameter(description = "Filter transactions by user ID who performed it")
             @RequestParam(required = false) Long userId,
+            @Parameter(description = "Filter transactions created on or after this timestamp")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fromDate,
+            @Parameter(description = "Filter transactions created on or before this timestamp")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
             @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
+        Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
         PageResponse<StockTransactionResponse> response = stockService.getTransactionHistory(
-                productId, type, userId, fromDate, toDate, pageable
+                productId, type, userId, fromDate, toDate, validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Stock history retrieved successfully"));
     }

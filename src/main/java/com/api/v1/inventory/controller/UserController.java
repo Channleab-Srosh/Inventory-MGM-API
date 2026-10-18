@@ -20,12 +20,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.api.v1.inventory.common.pagination.PaginationValidator;
+import java.util.List;
+
+import io.swagger.v3.oas.annotations.Parameter;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Tag(name = "User Management", description = "Admin-only user management endpoints")
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
+
+    public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
+            "id", "username", "email", "fullName", "role", "active", "createdAt", "updatedAt"
+    );
 
     private final AppUserService appUserService;
 
@@ -40,10 +49,12 @@ public class UserController {
     @GetMapping
     @Operation(summary = "Get all users with search and pagination (Admin only)")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(
+            @Parameter(description = "Filter users by username or full name (case-insensitive substring)")
             @RequestParam(required = false) String search,
             @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        PageResponse<UserResponse> response = appUserService.getAllUsers(search, pageable);
+        Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
+        PageResponse<UserResponse> response = appUserService.getAllUsers(search, validatedPageable);
         return ResponseEntity.ok(ApiResponse.ok(response, "Users retrieved successfully"));
     }
 

@@ -222,4 +222,54 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.active", is(true)));
     }
+
+    @Test
+    @DisplayName("GET /api/v1/users - Invalid sort field (hackerField) returns 400")
+    void testInvalidSortFieldReturns400() throws Exception {
+        mockMvc.perform(get("/api/v1/users?sort=hackerField,asc")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid sort property 'hackerField'")));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/users - Invalid sort direction (random) returns 400")
+    void testInvalidSortDirectionReturns400() throws Exception {
+        mockMvc.perform(get("/api/v1/users?sort=id,random")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid sort property 'random'")));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/users - Negative page index (-1) returns 400")
+    void testNegativePageIndexReturns400() throws Exception {
+        mockMvc.perform(get("/api/v1/users?page=-1")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Page index must not be less than zero (0-indexed)")));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/users - Zero page size (0) returns 400")
+    void testZeroPageSizeReturns400() throws Exception {
+        mockMvc.perform(get("/api/v1/users?size=0")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Page size must not be less than 1")));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/users - Oversized page size (200) is capped at 100")
+    void testOversizedPageSizeCappedAt100() throws Exception {
+        mockMvc.perform(get("/api/v1/users?size=200")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.pageSize", is(100)));
+    }
 }

@@ -18,11 +18,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.api.v1.inventory.common.pagination.PaginationValidator;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/dashboard")
 @RequiredArgsConstructor
 @Tag(name = "Dashboard", description = "Endpoints for dashboard analytics, KPI metrics, and low-stock monitoring")
 public class DashboardController {
+
+    public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
+            "stockQuantity", "id", "name", "minimumStock", "unitPrice"
+    );
 
     private final DashboardService dashboardService;
 
@@ -40,7 +47,8 @@ public class DashboardController {
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getLowStock(
             @ParameterObject @PageableDefault(size = 10, sort = "stockQuantity", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        PageResponse<ProductResponse> response = dashboardService.getLowStockProducts(pageable);
+        Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
+        PageResponse<ProductResponse> response = dashboardService.getLowStockProducts(validatedPageable);
         return ResponseEntity.ok(ApiResponse.ok(response, "Low stock products retrieved successfully"));
     }
 }

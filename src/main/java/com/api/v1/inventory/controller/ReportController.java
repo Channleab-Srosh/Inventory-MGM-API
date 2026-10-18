@@ -7,6 +7,7 @@ import com.api.v1.inventory.model.response.InventoryReportResponse;
 import com.api.v1.inventory.model.response.StockTransactionResponse;
 import com.api.v1.inventory.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -23,11 +24,22 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 
+import com.api.v1.inventory.common.pagination.PaginationValidator;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/reports")
 @RequiredArgsConstructor
 @Tag(name = "Reports", description = "Endpoints for generating inventory and transaction audit reports")
 public class ReportController {
+
+    public static final List<String> ALLOWED_STOCK_TRANSACTIONS_SORT_PROPERTIES = List.of(
+            "id", "quantity", "transactionType", "createdAt"
+    );
+
+    public static final List<String> ALLOWED_INVENTORY_REPORT_SORT_PROPERTIES = List.of(
+            "id", "sku", "name", "stockQuantity", "unitPrice", "createdAt"
+    );
 
     private final ReportService reportService;
 
@@ -35,15 +47,21 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @Operation(summary = "Get filtered, paginated stock transaction report (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<StockTransactionResponse>>> getStockTransactionReport(
+            @Parameter(description = "Filter transactions by product ID")
             @RequestParam(required = false) Long productId,
+            @Parameter(description = "Filter by transaction type (e.g. IN, OUT)")
             @RequestParam(required = false) TransactionType type,
+            @Parameter(description = "Filter transactions by user ID who performed it")
             @RequestParam(required = false) Long userId,
+            @Parameter(description = "Filter transactions created on or after this timestamp")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fromDate,
+            @Parameter(description = "Filter transactions created on or before this timestamp")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
             @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
+        Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_STOCK_TRANSACTIONS_SORT_PROPERTIES, "id");
         PageResponse<StockTransactionResponse> response = reportService.getStockTransactionReport(
-                productId, type, userId, fromDate, toDate, pageable
+                productId, type, userId, fromDate, toDate, validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Stock transaction report retrieved successfully"));
     }
@@ -52,15 +70,21 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @Operation(summary = "Get paginated product inventory valuation snapshot report (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<InventoryReportResponse>>> getInventoryReport(
+            @Parameter(description = "Filter by product name or SKU (case-insensitive substring)")
             @RequestParam(required = false) String keyword,
+            @Parameter(description = "Filter inventory by category ID")
             @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "Filter inventory by supplier ID")
             @RequestParam(required = false) Long supplierId,
+            @Parameter(description = "Filter by active product status")
             @RequestParam(required = false) Boolean active,
+            @Parameter(description = "If true, only include products at or below their minimum stock threshold")
             @RequestParam(required = false) Boolean lowStockOnly,
             @ParameterObject @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
+        Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_INVENTORY_REPORT_SORT_PROPERTIES, "id");
         PageResponse<InventoryReportResponse> response = reportService.getInventoryReport(
-                keyword, categoryId, supplierId, active, lowStockOnly, pageable
+                keyword, categoryId, supplierId, active, lowStockOnly, validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Inventory report retrieved successfully"));
     }

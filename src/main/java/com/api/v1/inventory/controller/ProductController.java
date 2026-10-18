@@ -19,11 +19,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.api.v1.inventory.common.pagination.PaginationValidator;
+import java.util.List;
+
+import io.swagger.v3.oas.annotations.Parameter;
+
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 @Tag(name = "Product Management", description = "Endpoints for managing inventory products")
 public class ProductController {
+
+    public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
+            "id", "sku", "name", "unitPrice", "stockQuantity", "minimumStock", "active", "createdAt", "updatedAt"
+    );
 
     private final ProductService productService;
 
@@ -41,18 +50,23 @@ public class ProductController {
     @GetMapping
     @Operation(summary = "Get all products with search, filters, and pagination (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProducts(
+            @Parameter(description = "Filter by product name or SKU (case-insensitive substring)")
             @RequestParam(required = false) String keyword,
+            @Parameter(description = "Filter products by category ID")
             @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "Filter products by supplier ID")
             @RequestParam(required = false) Long supplierId,
+            @Parameter(description = "Filter by active status")
             @RequestParam(required = false) Boolean active,
             @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
+        Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
         PageResponse<ProductResponse> response = productService.getProducts(
                 keyword,
                 categoryId,
                 supplierId,
                 active,
-                pageable
+                validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Products retrieved successfully"));
     }
