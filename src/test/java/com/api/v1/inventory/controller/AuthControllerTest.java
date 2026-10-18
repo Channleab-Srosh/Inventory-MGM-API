@@ -386,8 +386,10 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/v1/auth/login - Failure when user account is inactive/disabled")
     void testLoginFailureInactiveUser() throws Exception {
+        String uniqueUsername = "dis_user_" + System.currentTimeMillis();
         var disabledUser = appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
-                .username("disabled_user_test")
+                .username(uniqueUsername)
+                .email(uniqueUsername + "@test.com")
                 .password(passwordEncoder.encode("Password@123"))
                 .fullName("Disabled User")
                 .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
@@ -395,7 +397,7 @@ class AuthControllerTest {
                 .build());
 
         LoginRequest request = LoginRequest.builder()
-                .username("disabled_user_test")
+                .username(uniqueUsername)
                 .password("Password@123")
                 .build();
 
@@ -410,8 +412,10 @@ class AuthControllerTest {
     @Test
     @DisplayName("GET /api/v1/auth/me - Deactivated user token is rejected with 401 Unauthorized")
     void testDeactivatedUserTokenRejected() throws Exception {
+        String uniqueUsername = "deact_user_" + System.currentTimeMillis();
         var activeUser = appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
-                .username("to_be_deactivated")
+                .username(uniqueUsername)
+                .email(uniqueUsername + "@test.com")
                 .password(passwordEncoder.encode("Password@123"))
                 .fullName("Active Then Deactivated")
                 .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
@@ -419,7 +423,7 @@ class AuthControllerTest {
                 .build());
 
         LoginRequest loginRequest = LoginRequest.builder()
-                .username("to_be_deactivated")
+                .username(uniqueUsername)
                 .password("Password@123")
                 .build();
 

@@ -88,4 +88,15 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.ok(ApiResponse.ok(null, "Product deleted successfully"));
     }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Enable or disable a product status (Admin only)")
+    public ResponseEntity<ApiResponse<ProductResponse>> updateProductStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody com.api.v1.inventory.model.request.UpdateProductStatusRequest request
+    ) {
+        ProductResponse response = productService.updateProductStatus(id, request);
+        return ResponseEntity.ok(ApiResponse.ok(response, "Product status updated successfully"));
+    }
 }

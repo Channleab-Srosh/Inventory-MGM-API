@@ -91,6 +91,7 @@ The system enforces strict role-based access control (RBAC) at both the security
 | **Products** | `GET` | `/api/v1/products/{id}` | ADMIN, STAFF | Product details by ID |
 | **Products** | `GET` | `/api/v1/products/sku/{sku}` | ADMIN, STAFF | Product details by SKU |
 | **Products** | `PUT` | `/api/v1/products/{id}` | **ADMIN** | Update product (cannot alter stock quantity) |
+| **Products** | `PATCH` | `/api/v1/products/{id}/status` | **ADMIN** | Enable or disable product status (stock untouched) |
 | **Products** | `DELETE`| `/api/v1/products/{id}` | **ADMIN** | Delete product (fails if stock > 0 or history exists) |
 | **Stock** | `POST` | `/api/v1/stock/in` | ADMIN, STAFF | Add inventory stock (creates audit log) |
 | **Stock** | `POST` | `/api/v1/stock/out` | ADMIN, STAFF | Deduct stock (checks availability, prevents oversell) |

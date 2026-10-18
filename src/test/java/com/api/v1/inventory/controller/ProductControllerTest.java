@@ -588,4 +588,144 @@ class ProductControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success", is(false)));
     }
+
+    @Test
+    @DisplayName("PATCH /api/v1/products/{id}/status - Admin successfully updates product status")
+    void testAdminCanUpdateProductStatusSuccess() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-STATUS-OK-" + ts)
+                .name("Status Toggle Item")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("19.99"))
+                .stockQuantity(5)
+                .minimumStock(2)
+                .active(true)
+                .build());
+
+        com.api.v1.inventory.model.request.UpdateProductStatusRequest deactivateReq =
+                new com.api.v1.inventory.model.request.UpdateProductStatusRequest(false);
+
+        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(deactivateReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.active", is(false)));
+
+        com.api.v1.inventory.model.request.UpdateProductStatusRequest activateReq =
+                new com.api.v1.inventory.model.request.UpdateProductStatusRequest(true);
+
+        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(activateReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.active", is(true)));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/products/{id}/status - Staff is forbidden (403)")
+    void testStaffCannotUpdateProductStatus() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-STATUS-STAFF-" + ts)
+                .name("Staff Status Toggle Test")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("15.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        com.api.v1.inventory.model.request.UpdateProductStatusRequest req =
+                new com.api.v1.inventory.model.request.UpdateProductStatusRequest(false);
+
+        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/products/{id}/status - Nonexistent product returns 404")
+    void testUpdateProductStatusNotFound() throws Exception {
+        com.api.v1.inventory.model.request.UpdateProductStatusRequest req =
+                new com.api.v1.inventory.model.request.UpdateProductStatusRequest(false);
+
+        mockMvc.perform(patch("/api/v1/products/999999/status")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/products/{id}/status - Invalid input (null active) returns 400 Bad Request")
+    void testUpdateProductStatusInvalidInput() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product product = productRepository.save(Product.builder()
+                .sku("SKU-STATUS-INVALID-" + ts)
+                .name("Invalid Status Input Test")
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("15.00"))
+                .stockQuantity(0)
+                .minimumStock(1)
+                .active(true)
+                .build());
+
+        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.errors", notNullValue()));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/products/{id}/status - Preserves all other product fields and stock quantity")
+    void testUpdateProductStatusPreservesOtherFields() throws Exception {
+        long ts = System.currentTimeMillis();
+        String originalSku = "SKU-STATUS-PRESERVE-" + ts;
+        Product product = productRepository.save(Product.builder()
+                .sku(originalSku)
+                .name("Preserved Fields Product")
+                .description("Special description to verify preservation")
+                .category(sampleCategory)
+                .supplier(sampleSupplier)
+                .unitPrice(new BigDecimal("45.50"))
+                .stockQuantity(17) // Crucial: stock quantity must not be altered
+                .minimumStock(8)
+                .active(true)
+                .build());
+
+        com.api.v1.inventory.model.request.UpdateProductStatusRequest req =
+                new com.api.v1.inventory.model.request.UpdateProductStatusRequest(false);
+
+        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.active", is(false)))
+                .andExpect(jsonPath("$.data.sku", is(originalSku)))
+                .andExpect(jsonPath("$.data.name", is("Preserved Fields Product")))
+                .andExpect(jsonPath("$.data.unitPrice", is(45.50)))
+                .andExpect(jsonPath("$.data.stockQuantity", is(17)))
+                .andExpect(jsonPath("$.data.minimumStock", is(8)));
+
+        Product reloaded = productRepository.findById(product.getId()).orElseThrow();
+        assertEquals(false, reloaded.isActive());
+        assertEquals(17, reloaded.getStockQuantity(), "Stock quantity must be completely unchanged");
+        assertEquals(new BigDecimal("45.50"), reloaded.getUnitPrice(), "Unit price must be unchanged");
+        assertEquals(originalSku, reloaded.getSku(), "SKU must be unchanged");
+        assertEquals("Preserved Fields Product", reloaded.getName(), "Name must be unchanged");
+    }
 }

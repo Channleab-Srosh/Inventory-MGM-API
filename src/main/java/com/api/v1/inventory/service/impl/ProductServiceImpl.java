@@ -161,4 +161,17 @@ public class ProductServiceImpl implements ProductService {
         productRepository.delete(product);
         log.info("Product deleted successfully with id: {}", id);
     }
+
+    @Override
+    @Transactional
+    public ProductResponse updateProductStatus(Long id, com.api.v1.inventory.model.request.UpdateProductStatusRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        product.setActive(request.getActive());
+        // NOTE: stockQuantity and all other product fields are preserved untouched
+        Product updated = productRepository.save(product);
+        log.info("Product status updated successfully: id={}, active={}", updated.getId(), updated.isActive());
+        return ProductResponse.fromEntity(updated);
+    }
 }
