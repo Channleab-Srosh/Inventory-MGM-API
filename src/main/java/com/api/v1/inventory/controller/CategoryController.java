@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -41,7 +42,7 @@ public class CategoryController {
     @Operation(summary = "Get all categories with pagination and search (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<CategoryResponse>>> getAllCategories(
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         PageResponse<CategoryResponse> response = categoryService.getAllCategories(search, pageable);
         return ResponseEntity.ok(ApiResponse.ok(response, "Categories retrieved successfully"));

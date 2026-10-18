@@ -8,6 +8,7 @@ import com.api.v1.inventory.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -37,7 +38,7 @@ public class DashboardController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @Operation(summary = "Get paginated list of products at or below their minimum stock threshold (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getLowStock(
-            @PageableDefault(size = 10, sort = "stockQuantity", direction = Sort.Direction.ASC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 10, sort = "stockQuantity", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         PageResponse<ProductResponse> response = dashboardService.getLowStockProducts(pageable);
         return ResponseEntity.ok(ApiResponse.ok(response, "Low stock products retrieved successfully"));

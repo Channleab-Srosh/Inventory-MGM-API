@@ -207,7 +207,7 @@ class UserControllerTest {
                 .path("data").path("id").asLong();
 
         // Deactivate user
-        mockMvc.perform(patch("/api/v1/users/" + userId + "/status")
+        mockMvc.perform(put("/api/v1/users/" + userId + "/status")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateUserStatusRequest(false))))
@@ -215,7 +215,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.data.active", is(false)));
 
         // Re-enable user
-        mockMvc.perform(patch("/api/v1/users/" + userId + "/status")
+        mockMvc.perform(put("/api/v1/users/" + userId + "/status")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateUserStatusRequest(true))))

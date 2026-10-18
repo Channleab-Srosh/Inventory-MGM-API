@@ -2,6 +2,7 @@ package com.api.v1.inventory.model.request;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -14,6 +15,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResetPasswordRequest {
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
+    @Schema(description = "Email of the account requesting password reset", example = "staff@inventory.com")
+    private String email;
 
     @NotBlank(message = "OTP code is required")
     @Schema(description = "6-digit OTP code received via email", example = "569237")

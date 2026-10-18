@@ -7,6 +7,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -224,6 +228,7 @@ class AuthControllerTest {
 
         com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
                 com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .email(staffUser.getEmail())
                         .otp("998877")
                         .newPassword("NewStaffPass@123")
                         .build();
@@ -256,8 +261,10 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/v1/auth/reset-password - Invalid or revoked token rejected")
     void testResetPasswordInvalidTokenRejected() throws Exception {
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
         com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
                 com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .email(staffUser.getEmail())
                         .otp("000000")
                         .newPassword("AnotherPassword@123")
                         .build();
@@ -268,6 +275,293 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - OTP belonging to another account is rejected")
+    void testResetPasswordRejectsOtpFromAnotherAccount() throws Exception {
+        // Account A: staff
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        appUserTokenRepository.deleteByUserId(staffUser.getId());
+        appUserTokenRepository.save(com.api.v1.inventory.model.entity.AppUserToken.builder()
+                .user(staffUser)
+                .token("112233")
+                .expiresAt(java.time.Instant.now().plus(java.time.Duration.ofMinutes(15)))
+                .revoked(false)
+                .build());
+
+        // Account B: create second staff user
+        String userBName = "staff_b_" + System.currentTimeMillis();
+        var userB = appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
+                .username(userBName)
+                .email(userBName + "@test.com")
+                .password(passwordEncoder.encode("PasswordB@123"))
+                .fullName("Staff B")
+                .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
+                .active(true)
+                .build());
+
+        appUserTokenRepository.save(com.api.v1.inventory.model.entity.AppUserToken.builder()
+                .user(userB)
+                .token("889900")
+                .expiresAt(java.time.Instant.now().plus(java.time.Duration.ofMinutes(15)))
+                .revoked(false)
+                .build());
+
+        // Attempt to reset Account B using Account A's OTP ("112233")
+        com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
+                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .email(userB.getEmail())
+                        .otp("112233")
+                        .newPassword("HackedPassword@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(resetReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
+
+        // Verify Account B's password has NOT changed
+        var refreshedB = appUserRepository.findById(userB.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertTrue(passwordEncoder.matches("PasswordB@123", refreshedB.getPassword()));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - Expired OTP is rejected")
+    void testResetPasswordExpiredOtpRejected() throws Exception {
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        appUserTokenRepository.deleteByUserId(staffUser.getId());
+        appUserTokenRepository.save(com.api.v1.inventory.model.entity.AppUserToken.builder()
+                .user(staffUser)
+                .token("445566")
+                .expiresAt(java.time.Instant.now().minusSeconds(10))
+                .revoked(false)
+                .build());
+
+        com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
+                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .email(staffUser.getEmail())
+                        .otp("445566")
+                        .newPassword("NewStaffPass@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(resetReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("expired")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - Successfully used OTP cannot be reused")
+    void testResetPasswordUsedOtpCannotBeReused() throws Exception {
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        appUserTokenRepository.deleteByUserId(staffUser.getId());
+        appUserTokenRepository.save(com.api.v1.inventory.model.entity.AppUserToken.builder()
+                .user(staffUser)
+                .token("778899")
+                .expiresAt(java.time.Instant.now().plus(java.time.Duration.ofMinutes(15)))
+                .revoked(false)
+                .build());
+
+        com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
+                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .email(staffUser.getEmail())
+                        .otp("778899")
+                        .newPassword("FirstResetPass@123")
+                        .build();
+
+        // First use succeeds
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(resetReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)));
+
+        // Second use with identical OTP is rejected
+        com.api.v1.inventory.model.request.ResetPasswordRequest reuseReq =
+                com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .email(staffUser.getEmail())
+                        .otp("778899")
+                        .newPassword("SecondResetPass@123")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reuseReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
+
+        // Restore password
+        staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        staffUser.setPassword(passwordEncoder.encode("Staff@12345"));
+        appUserRepository.save(staffUser);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - Three failed attempts invalidate the OTP")
+    void testResetPasswordThreeFailedAttemptsInvalidatesOtp() throws Exception {
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        appUserTokenRepository.deleteByUserId(staffUser.getId());
+        appUserTokenRepository.save(com.api.v1.inventory.model.entity.AppUserToken.builder()
+                .user(staffUser)
+                .token("123987")
+                .expiresAt(java.time.Instant.now().plus(java.time.Duration.ofMinutes(15)))
+                .revoked(false)
+                .attempts(0)
+                .build());
+
+        // Attempt 1: wrong OTP
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                                .email(staffUser.getEmail())
+                                .otp("000001")
+                                .newPassword("NewPass@123")
+                                .build())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
+
+        // Attempt 2: wrong OTP
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                                .email(staffUser.getEmail())
+                                .otp("000002")
+                                .newPassword("NewPass@123")
+                                .build())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
+
+        // Attempt 3: wrong OTP -> limit reached, token revoked
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                                .email(staffUser.getEmail())
+                                .otp("000003")
+                                .newPassword("NewPass@123")
+                                .build())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("too many failed attempts")));
+
+        // Attempt 4: submit the genuine OTP -> still rejected because token was invalidated
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                                .email(staffUser.getEmail())
+                                .otp("123987")
+                                .newPassword("NewPass@123")
+                                .build())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/forgot-password - New OTP request invalidates previous active OTP")
+    void testNewOtpRequestInvalidatesPreviousActiveOtp() throws Exception {
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        appUserTokenRepository.deleteByUserId(staffUser.getId());
+
+        com.api.v1.inventory.model.request.ForgotPasswordRequest request =
+                com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
+                        .email(staffUser.getEmail())
+                        .build();
+
+        // 1st request
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        var firstToken = appUserTokenRepository.findByUserIdAndRevokedFalse(staffUser.getId()).get(0);
+        String firstOtp = firstToken.getToken();
+
+        // 2nd request
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Verify first token is marked revoked
+        var refreshedFirst = appUserTokenRepository.findById(firstToken.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertTrue(refreshedFirst.isRevoked(), "First OTP must be marked revoked");
+
+        // Try to use 1st OTP -> rejected
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                                .email(staffUser.getEmail())
+                                .otp(firstOtp)
+                                .newPassword("SomeNewPass@123")
+                                .build())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
+
+        // Use 2nd OTP -> succeeds
+        var secondToken = appUserTokenRepository.findByUserIdAndRevokedFalse(staffUser.getId()).get(0);
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                                .email(staffUser.getEmail())
+                                .otp(secondToken.getToken())
+                                .newPassword("SomeNewPass@123")
+                                .build())))
+                .andExpect(status().isOk());
+
+        // Restore password
+        staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        staffUser.setPassword(passwordEncoder.encode("Staff@12345"));
+        appUserRepository.save(staffUser);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password - Rejects request with missing email")
+    void testResetPasswordRejectsMissingEmail() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"otp\":\"123456\",\"newPassword\":\"ValidPass@123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("Password reset OTP value does NOT appear in application logs")
+    void testOtpValueNotInApplicationLogs() throws Exception {
+        Logger emailLogger = (Logger) LoggerFactory.getLogger(com.api.v1.inventory.service.impl.EmailServiceImpl.class);
+        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.start();
+        emailLogger.addAppender(listAppender);
+
+        try {
+            var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+            appUserTokenRepository.deleteByUserId(staffUser.getId());
+
+            com.api.v1.inventory.model.request.ForgotPasswordRequest request =
+                    com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
+                            .email(staffUser.getEmail())
+                            .build();
+
+            mockMvc.perform(post("/api/v1/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            // Retrieve generated OTP from database
+            var tokenEntity = appUserTokenRepository.findByUserIdAndRevokedFalse(staffUser.getId()).get(0);
+            String rawOtp = tokenEntity.getToken();
+
+            // Verify the raw OTP does not appear in any log event
+            boolean leaked = listAppender.list.stream()
+                    .anyMatch(event -> event.getFormattedMessage().contains(rawOtp));
+
+            org.junit.jupiter.api.Assertions.assertFalse(leaked, "Active OTP value must never be logged in application logs");
+        } finally {
+            emailLogger.detachAppender(listAppender);
+        }
     }
 
     @Test
@@ -369,8 +663,10 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/v1/auth/reset-password - Rejects non-OTP JWT tokens")
     void testResetPasswordRejectsJwtTokens() throws Exception {
+        var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
         com.api.v1.inventory.model.request.ResetPasswordRequest resetReq =
                 com.api.v1.inventory.model.request.ResetPasswordRequest.builder()
+                        .email(staffUser.getEmail())
                         .otp("eyJhbGciOiJIUzI1NiJ9.fakeToken")
                         .newPassword("SomePassword@123")
                         .build();

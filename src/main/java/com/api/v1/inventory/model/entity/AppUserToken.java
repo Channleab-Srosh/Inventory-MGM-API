@@ -8,7 +8,8 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "app_user_tokens", indexes = {
-        @Index(name = "idx_user_tokens_user", columnList = "user_id")
+        @Index(name = "idx_user_tokens_user", columnList = "user_id"),
+        @Index(name = "idx_user_tokens_user_revoked", columnList = "user_id, revoked")
 })
 @Getter
 @Setter
@@ -38,4 +39,8 @@ public class AppUserToken {
     @Column(nullable = false)
     @Builder.Default
     private boolean revoked = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int attempts = 0;
 }

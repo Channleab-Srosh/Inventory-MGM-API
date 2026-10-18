@@ -9,6 +9,7 @@ import com.api.v1.inventory.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -39,7 +40,7 @@ public class ReportController {
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant toDate,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         PageResponse<StockTransactionResponse> response = reportService.getStockTransactionReport(
                 productId, type, userId, fromDate, toDate, pageable
@@ -56,7 +57,7 @@ public class ReportController {
             @RequestParam(required = false) Long supplierId,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) Boolean lowStockOnly,
-            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         PageResponse<InventoryReportResponse> response = reportService.getInventoryReport(
                 keyword, categoryId, supplierId, active, lowStockOnly, pageable

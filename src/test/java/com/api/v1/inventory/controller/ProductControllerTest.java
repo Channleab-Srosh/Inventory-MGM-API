@@ -590,7 +590,7 @@ class ProductControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /api/v1/products/{id}/status - Admin successfully updates product status")
+    @DisplayName("PUT /api/v1/products/{id}/status - Admin successfully updates product status")
     void testAdminCanUpdateProductStatusSuccess() throws Exception {
         long ts = System.currentTimeMillis();
         Product product = productRepository.save(Product.builder()
@@ -606,7 +606,7 @@ class ProductControllerTest {
         com.api.v1.inventory.model.request.UpdateProductStatusRequest deactivateReq =
                 new com.api.v1.inventory.model.request.UpdateProductStatusRequest(false);
 
-        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+        mockMvc.perform(put("/api/v1/products/" + product.getId() + "/status")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(deactivateReq)))
@@ -617,7 +617,7 @@ class ProductControllerTest {
         com.api.v1.inventory.model.request.UpdateProductStatusRequest activateReq =
                 new com.api.v1.inventory.model.request.UpdateProductStatusRequest(true);
 
-        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+        mockMvc.perform(put("/api/v1/products/" + product.getId() + "/status")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(activateReq)))
@@ -627,7 +627,7 @@ class ProductControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /api/v1/products/{id}/status - Staff is forbidden (403)")
+    @DisplayName("PUT /api/v1/products/{id}/status - Staff is forbidden (403)")
     void testStaffCannotUpdateProductStatus() throws Exception {
         long ts = System.currentTimeMillis();
         Product product = productRepository.save(Product.builder()
@@ -643,7 +643,7 @@ class ProductControllerTest {
         com.api.v1.inventory.model.request.UpdateProductStatusRequest req =
                 new com.api.v1.inventory.model.request.UpdateProductStatusRequest(false);
 
-        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+        mockMvc.perform(put("/api/v1/products/" + product.getId() + "/status")
                         .header("Authorization", "Bearer " + staffToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
@@ -652,12 +652,12 @@ class ProductControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /api/v1/products/{id}/status - Nonexistent product returns 404")
+    @DisplayName("PUT /api/v1/products/{id}/status - Nonexistent product returns 404")
     void testUpdateProductStatusNotFound() throws Exception {
         com.api.v1.inventory.model.request.UpdateProductStatusRequest req =
                 new com.api.v1.inventory.model.request.UpdateProductStatusRequest(false);
 
-        mockMvc.perform(patch("/api/v1/products/999999/status")
+        mockMvc.perform(put("/api/v1/products/999999/status")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
@@ -666,7 +666,7 @@ class ProductControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /api/v1/products/{id}/status - Invalid input (null active) returns 400 Bad Request")
+    @DisplayName("PUT /api/v1/products/{id}/status - Invalid input (null active) returns 400 Bad Request")
     void testUpdateProductStatusInvalidInput() throws Exception {
         long ts = System.currentTimeMillis();
         Product product = productRepository.save(Product.builder()
@@ -679,7 +679,7 @@ class ProductControllerTest {
                 .active(true)
                 .build());
 
-        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+        mockMvc.perform(put("/api/v1/products/" + product.getId() + "/status")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -689,7 +689,7 @@ class ProductControllerTest {
     }
 
     @Test
-    @DisplayName("PATCH /api/v1/products/{id}/status - Preserves all other product fields and stock quantity")
+    @DisplayName("PUT /api/v1/products/{id}/status - Preserves all other product fields and stock quantity")
     void testUpdateProductStatusPreservesOtherFields() throws Exception {
         long ts = System.currentTimeMillis();
         String originalSku = "SKU-STATUS-PRESERVE-" + ts;
@@ -708,7 +708,7 @@ class ProductControllerTest {
         com.api.v1.inventory.model.request.UpdateProductStatusRequest req =
                 new com.api.v1.inventory.model.request.UpdateProductStatusRequest(false);
 
-        mockMvc.perform(patch("/api/v1/products/" + product.getId() + "/status")
+        mockMvc.perform(put("/api/v1/products/" + product.getId() + "/status")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))

@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -40,7 +41,7 @@ public class UserController {
     @Operation(summary = "Get all users with search and pagination (Admin only)")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         PageResponse<UserResponse> response = appUserService.getAllUsers(search, pageable);
         return ResponseEntity.ok(ApiResponse.ok(response, "Users retrieved successfully"));
@@ -63,7 +64,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(response, "User updated successfully"));
     }
 
-    @PatchMapping("/{id}/status")
+    @PutMapping("/{id}/status")
     @Operation(summary = "Enable or disable a user account (Admin only)")
     public ResponseEntity<ApiResponse<UserResponse>> updateUserStatus(
             @PathVariable Long id,

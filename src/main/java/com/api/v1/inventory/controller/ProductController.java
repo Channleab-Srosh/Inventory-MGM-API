@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -44,7 +45,7 @@ public class ProductController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long supplierId,
             @RequestParam(required = false) Boolean active,
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         PageResponse<ProductResponse> response = productService.getProducts(
                 keyword,
@@ -89,7 +90,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.ok(null, "Product deleted successfully"));
     }
 
-    @PatchMapping("/{id}/status")
+    @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Enable or disable a product status (Admin only)")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProductStatus(
