@@ -55,4 +55,27 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT COUNT(p) FROM Product p WHERE p.active = true AND p.stockQuantity = 0")
     long countOutOfStockProducts();
+
+    @Query("SELECT COALESCE(SUM(p.stockQuantity), 0) FROM Product p WHERE p.active = true")
+    long sumTotalStockQuantity();
+
+    @Query("SELECT COALESCE(SUM(p.unitPrice * p.stockQuantity), 0) FROM Product p WHERE p.active = true")
+    java.math.BigDecimal sumTotalInventoryValue();
+
+    @EntityGraph(attributePaths = {"category", "supplier"})
+    @Query("SELECT p FROM Product p " +
+           "WHERE (CAST(:keyword AS string) IS NULL " +
+           "       OR LOWER(p.name) LIKE CAST(:keyword AS string) " +
+           "       OR LOWER(p.sku) LIKE CAST(:keyword AS string)) " +
+           "  AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
+           "  AND (:supplierId IS NULL OR p.supplier.id = :supplierId) " +
+           "  AND (:active IS NULL OR p.active = :active) " +
+           "  AND (:lowStockOnly IS NULL OR :lowStockOnly = false OR p.stockQuantity <= p.minimumStock)")
+    Page<Product> searchInventoryReport(
+            @Param("keyword") String keyword,
+            @Param("categoryId") Long categoryId,
+            @Param("supplierId") Long supplierId,
+            @Param("active") Boolean active,
+            @Param("lowStockOnly") Boolean lowStockOnly,
+            Pageable pageable);
 }
