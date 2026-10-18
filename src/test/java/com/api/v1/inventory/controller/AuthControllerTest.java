@@ -382,4 +382,64 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", containsString("Invalid or expired")));
     }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/login - Failure when user account is inactive/disabled")
+    void testLoginFailureInactiveUser() throws Exception {
+        var disabledUser = appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
+                .username("disabled_user_test")
+                .password(passwordEncoder.encode("Password@123"))
+                .fullName("Disabled User")
+                .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
+                .active(false)
+                .build());
+
+        LoginRequest request = LoginRequest.builder()
+                .username("disabled_user_test")
+                .password("Password@123")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("disabled")));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/auth/me - Deactivated user token is rejected with 401 Unauthorized")
+    void testDeactivatedUserTokenRejected() throws Exception {
+        var activeUser = appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
+                .username("to_be_deactivated")
+                .password(passwordEncoder.encode("Password@123"))
+                .fullName("Active Then Deactivated")
+                .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
+                .active(true)
+                .build());
+
+        LoginRequest loginRequest = LoginRequest.builder()
+                .username("to_be_deactivated")
+                .password("Password@123")
+                .build();
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        // Now deactivate user
+        activeUser.setActive(false);
+        appUserRepository.save(activeUser);
+
+        // Attempt to call protected endpoint with previously issued token
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
 }
