@@ -21,6 +21,7 @@ import io.swagger.v3.oas.models.parameters.QueryParameter;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,6 +55,22 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")));
+    }
+
+    // unshow lock icon on specific endpoint
+    @Bean
+    public GlobalOpenApiCustomizer hideLockOnAuthEndpoints() {
+        return openApi -> openApi.getPaths().forEach((path, pathItem) -> {
+            // Change "/api/auth" to match your actual auth URL prefix (e.g., "/auth" or "/api/v1/auth")
+            if (path.startsWith("/api/v1/auth/login") ||
+                    path.startsWith("/api/v1/auth/forgot-password") ||
+                    path.startsWith("/api/v1/auth/reset-password")
+                ) {
+                pathItem.readOperations().forEach(operation ->
+                        operation.setSecurity(Collections.emptyList())
+                );
+            }
+        });
     }
 
     @Bean
