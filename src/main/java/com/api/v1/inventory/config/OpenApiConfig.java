@@ -46,10 +46,6 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Inventory Management System API")
                         .version("1.0.0")
-                        .description("Backend REST APIs for Inventory Management System.\n\n" +
-                                "### Pagination & Sorting Rules\n" +
-                                "- Directions are case-insensitive (`asc` or `desc`).\n" +
-                                "- To sort by multiple properties, repeat the `sort` query parameter (e.g. `?sort=role,asc&sort=createdAt,desc`).")
                         .contact(new Contact().name("SETEC Year 4 Team")))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()

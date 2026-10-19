@@ -27,7 +27,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 @RestController
 @RequestMapping("/api/v1/suppliers")
 @RequiredArgsConstructor
-@Tag(name = "Supplier Management", description = "Endpoints for managing inventory suppliers")
+@Tag(name = "Supplier Management")
 public class SupplierController {
 
     public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
@@ -38,7 +38,6 @@ public class SupplierController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create a new supplier (Admin only)")
     public ResponseEntity<ApiResponse<SupplierResponse>> createSupplier(
             @Valid @RequestBody CreateSupplierRequest request
     ) {
@@ -48,7 +47,6 @@ public class SupplierController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all suppliers with pagination and search (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<SupplierResponse>>> getAllSuppliers(
             @Parameter(description = "Filter suppliers by name or phone (substring)")
             @RequestParam(required = false) String search,
@@ -60,7 +58,6 @@ public class SupplierController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get supplier by ID (Admin and Staff)")
     public ResponseEntity<ApiResponse<SupplierResponse>> getSupplierById(@PathVariable Long id) {
         SupplierResponse response = supplierService.getSupplierById(id);
         return ResponseEntity.ok(ApiResponse.ok(response, "Supplier retrieved successfully"));
@@ -68,7 +65,6 @@ public class SupplierController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update an existing supplier (Admin only)")
     public ResponseEntity<ApiResponse<SupplierResponse>> updateSupplier(
             @PathVariable Long id,
             @Valid @RequestBody UpdateSupplierRequest request
@@ -79,7 +75,6 @@ public class SupplierController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete supplier by ID (Admin only, fails if products reference it)")
     public ResponseEntity<ApiResponse<Void>> deleteSupplier(@PathVariable Long id) {
         supplierService.deleteSupplier(id);
         return ResponseEntity.ok(ApiResponse.ok(null, "Supplier deleted successfully"));

@@ -30,7 +30,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/reports")
 @RequiredArgsConstructor
-@Tag(name = "Reports", description = "Endpoints for generating inventory and transaction audit reports")
+@Tag(name = "Reports")
 public class ReportController {
 
     public static final List<String> ALLOWED_STOCK_TRANSACTIONS_SORT_PROPERTIES = List.of(
@@ -45,7 +45,6 @@ public class ReportController {
 
     @GetMapping("/stock-transactions")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    @Operation(summary = "Get filtered, paginated stock transaction report (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<StockTransactionResponse>>> getStockTransactionReport(
             @Parameter(description = "Filter transactions by product ID")
             @RequestParam(required = false) Long productId,
@@ -68,7 +67,6 @@ public class ReportController {
 
     @GetMapping("/inventory")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    @Operation(summary = "Get paginated product inventory valuation snapshot report (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<InventoryReportResponse>>> getInventoryReport(
             @Parameter(description = "Filter by product name or SKU (case-insensitive substring)")
             @RequestParam(required = false) String keyword,

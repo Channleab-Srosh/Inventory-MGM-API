@@ -27,7 +27,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 @RestController
 @RequestMapping("/api/v1/categories")
 @RequiredArgsConstructor
-@Tag(name = "Category Management", description = "Endpoints for managing inventory categories")
+@Tag(name = "Category Management")
 public class CategoryController {
 
     public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
@@ -38,7 +38,6 @@ public class CategoryController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create a new category (Admin only)")
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(
             @Valid @RequestBody CreateCategoryRequest request
     ) {
@@ -48,7 +47,6 @@ public class CategoryController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all categories with pagination and search (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<CategoryResponse>>> getAllCategories(
             @Parameter(description = "Filter categories by name (case-insensitive substring)")
             @RequestParam(required = false) String search,
@@ -60,7 +58,6 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get category by ID (Admin and Staff)")
     public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable Long id) {
         CategoryResponse response = categoryService.getCategoryById(id);
         return ResponseEntity.ok(ApiResponse.ok(response, "Category retrieved successfully"));
@@ -68,7 +65,6 @@ public class CategoryController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update an existing category (Admin only)")
     public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody UpdateCategoryRequest request
@@ -79,7 +75,6 @@ public class CategoryController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete category by ID (Admin only, fails if products reference it)")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.ok(ApiResponse.ok(null, "Category deleted successfully"));

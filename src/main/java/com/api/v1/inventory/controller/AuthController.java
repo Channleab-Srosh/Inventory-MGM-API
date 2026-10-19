@@ -18,28 +18,25 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Authentication and user identity endpoints")
+@Tag(name = "Authentication")
 public class AuthController {
 
     private final AuthService authService;
     private final AppUserService appUserService;
 
     @PostMapping("/login")
-    @Operation(summary = "Authenticate user and get JWT access token")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok(authResponse, "Login successful"));
     }
 
     @GetMapping("/me")
-    @Operation(summary = "Get current authenticated user profile")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
         UserResponse userResponse = appUserService.getCurrentUserProfile();
         return ResponseEntity.ok(ApiResponse.ok(userResponse, "Current user profile retrieved successfully"));
     }
 
     @PostMapping("/forgot-password")
-    @Operation(summary = "Request password reset OTP for staff account via email")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request);
         return ResponseEntity.ok(ApiResponse.ok(
@@ -49,7 +46,6 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    @Operation(summary = "Reset password using OTP code received via email")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.ok(
@@ -59,7 +55,6 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    @Operation(summary = "Change password for currently authenticated user")
     public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody com.api.v1.inventory.model.request.ChangePasswordRequest request) {
         authService.changePassword(request);
         return ResponseEntity.ok(ApiResponse.ok(

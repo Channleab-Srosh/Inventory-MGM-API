@@ -7,7 +7,6 @@ import com.api.v1.inventory.model.request.UpdateUserRequest;
 import com.api.v1.inventory.model.request.UpdateUserStatusRequest;
 import com.api.v1.inventory.model.response.UserResponse;
 import com.api.v1.inventory.service.AppUserService;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-@Tag(name = "User Management", description = "Admin-only user management endpoints")
+@Tag(name = "User Management")
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
@@ -39,7 +38,6 @@ public class UserController {
     private final AppUserService appUserService;
 
     @PostMapping
-    @Operation(summary = "Create a new user account (Admin only)")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse response = appUserService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -47,7 +45,6 @@ public class UserController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all users with search and pagination (Admin only)")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(
             @Parameter(description = "Filter users by username or full name (case-insensitive substring)")
             @RequestParam(required = false) String search,
@@ -59,14 +56,12 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get user details by ID (Admin only)")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long id) {
         UserResponse response = appUserService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.ok(response, "User retrieved successfully"));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update an existing user (Admin only)")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserRequest request
@@ -76,7 +71,6 @@ public class UserController {
     }
 
     @PutMapping("/{id}/status")
-    @Operation(summary = "Enable or disable a user account (Admin only)")
     public ResponseEntity<ApiResponse<UserResponse>> updateUserStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserStatusRequest request

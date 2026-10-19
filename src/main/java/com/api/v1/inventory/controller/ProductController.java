@@ -27,7 +27,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
-@Tag(name = "Product Management", description = "Endpoints for managing inventory products")
+@Tag(name = "Product Management")
 public class ProductController {
 
     public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
@@ -38,7 +38,6 @@ public class ProductController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create a new product (Admin only)")
     public ResponseEntity<ApiResponse<ProductResponse>> createProduct(
             @Valid @RequestBody CreateProductRequest request
     ) {
@@ -48,7 +47,6 @@ public class ProductController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all products with search, filters, and pagination (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProducts(
             @Parameter(description = "Filter by product name or SKU (case-insensitive substring)")
             @RequestParam(required = false) String keyword,
@@ -72,14 +70,12 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get product details by ID (Admin and Staff)")
     public ResponseEntity<ApiResponse<ProductResponse>> getProductById(@PathVariable Long id) {
         ProductResponse response = productService.getProductById(id);
         return ResponseEntity.ok(ApiResponse.ok(response, "Product retrieved successfully"));
     }
 
     @GetMapping("/sku/{sku}")
-    @Operation(summary = "Get product details by SKU (Admin and Staff)")
     public ResponseEntity<ApiResponse<ProductResponse>> getProductBySku(@PathVariable String sku) {
         ProductResponse response = productService.getProductBySku(sku);
         return ResponseEntity.ok(ApiResponse.ok(response, "Product retrieved successfully"));
@@ -87,7 +83,6 @@ public class ProductController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update an existing product (Admin only - general updates cannot modify stock quantity)")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProductRequest request
@@ -98,7 +93,6 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete product by ID (Admin only - rejected if transactions or positive stock exist)")
     public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.ok(ApiResponse.ok(null, "Product deleted successfully"));
@@ -106,7 +100,6 @@ public class ProductController {
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Enable or disable a product status (Admin only)")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProductStatus(
             @PathVariable Long id,
             @Valid @RequestBody com.api.v1.inventory.model.request.UpdateProductStatusRequest request

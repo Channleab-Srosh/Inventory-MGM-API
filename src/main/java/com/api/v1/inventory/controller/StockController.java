@@ -29,7 +29,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 @RestController
 @RequestMapping("/api/v1/stock")
 @RequiredArgsConstructor
-@Tag(name = "Stock Operations", description = "Endpoints for stock management and transaction audit history")
+@Tag(name = "Stock Operations")
 public class StockController {
 
     public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
@@ -39,7 +39,6 @@ public class StockController {
     private final StockService stockService;
 
     @PostMapping("/in")
-    @Operation(summary = "Perform Stock In operation (Admin and Staff)")
     public ResponseEntity<ApiResponse<StockTransactionResponse>> stockIn(
             @Valid @RequestBody StockOperationRequest request
     ) {
@@ -49,7 +48,6 @@ public class StockController {
     }
 
     @PostMapping("/out")
-    @Operation(summary = "Perform Stock Out operation with availability check (Admin and Staff)")
     public ResponseEntity<ApiResponse<StockTransactionResponse>> stockOut(
             @Valid @RequestBody StockOperationRequest request
     ) {
@@ -59,7 +57,6 @@ public class StockController {
     }
 
     @GetMapping("/history")
-    @Operation(summary = "Get transaction audit history with filters and pagination (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<StockTransactionResponse>>> getHistory(
             @Parameter(description = "Filter transactions by product ID")
             @RequestParam(required = false) Long productId,
@@ -80,8 +77,8 @@ public class StockController {
         return ResponseEntity.ok(ApiResponse.ok(response, "Stock history retrieved successfully"));
     }
 
+
     @GetMapping("/history/{id}")
-    @Operation(summary = "Get transaction details by ID (Admin and Staff)")
     public ResponseEntity<ApiResponse<StockTransactionResponse>> getHistoryById(@PathVariable Long id) {
         StockTransactionResponse response = stockService.getTransactionById(id);
         return ResponseEntity.ok(ApiResponse.ok(response, "Stock transaction retrieved successfully"));

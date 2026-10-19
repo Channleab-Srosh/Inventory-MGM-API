@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/dashboard")
 @RequiredArgsConstructor
-@Tag(name = "Dashboard", description = "Endpoints for dashboard analytics, KPI metrics, and low-stock monitoring")
+@Tag(name = "Dashboard")
 public class DashboardController {
 
     public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
@@ -35,7 +35,6 @@ public class DashboardController {
 
     @GetMapping("/summary")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    @Operation(summary = "Get aggregate dashboard KPI summary metrics (Admin and Staff)")
     public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getSummary() {
         DashboardSummaryResponse response = dashboardService.getDashboardSummary();
         return ResponseEntity.ok(ApiResponse.ok(response, "Dashboard summary retrieved successfully"));
@@ -43,7 +42,6 @@ public class DashboardController {
 
     @GetMapping("/low-stock")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    @Operation(summary = "Get paginated list of products at or below their minimum stock threshold (Admin and Staff)")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getLowStock(
             @ParameterObject @PageableDefault(size = 10, sort = "stockQuantity", direction = Sort.Direction.ASC) Pageable pageable
     ) {
