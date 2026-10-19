@@ -66,7 +66,10 @@ public class OpenApiConfig {
     public GlobalOpenApiCustomizer hideLockOnAuthEndpoints() {
         return openApi -> openApi.getPaths().forEach((path, pathItem) -> {
             // Change "/api/auth" to match your actual auth URL prefix (e.g., "/auth" or "/api/v1/auth")
-            if (path.startsWith("/api/v1/auth")) {
+            if (path.startsWith("/api/v1/auth/login") ||
+                    path.startsWith("/api/v1/auth/forgot-password") ||
+                    path.startsWith("/api/v1/auth/reset-password")
+                ) {
                 pathItem.readOperations().forEach(operation ->
                         operation.setSecurity(Collections.emptyList())
                 );
