@@ -50,5 +50,21 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             log.info("Default STAFF user already exists. Existing credentials preserved.");
         }
+
+        if (!userRepository.existsByUsernameIgnoreCase("manager")) {
+            AppUser manager = AppUser.builder()
+                    .username("manager")
+                    .email("manager@inventory.com")
+                    .password(passwordEncoder.encode("Manager@12345"))
+                    .fullName("Inventory Manager")
+                    .phone("012345680")
+                    .role(Role.MANAGER)
+                    .active(true)
+                    .build();
+            userRepository.save(manager);
+            log.info("Initialized default MANAGER user: manager / Manager@12345");
+        } else {
+            log.info("Default MANAGER user already exists. Existing credentials preserved.");
+        }
     }
 }

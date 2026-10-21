@@ -34,14 +34,14 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getSummary() {
         DashboardSummaryResponse response = dashboardService.getDashboardSummary();
         return ResponseEntity.ok(ApiResponse.ok(response, "Dashboard summary retrieved successfully"));
     }
 
     @GetMapping("/low-stock")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getLowStock(
             @ParameterObject @PageableDefault(size = 10, sort = "stockQuantity", direction = Sort.Direction.ASC) Pageable pageable
     ) {

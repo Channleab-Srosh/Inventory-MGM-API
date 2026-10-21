@@ -18,7 +18,7 @@ public class ResetPasswordRequest {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
-    @Schema(description = "Email of the account requesting password reset", example = "staff@inventory.com")
+    @Schema(description = "Email of the account requesting password reset", example = "staff.inventory@gmail.com")
     private String email;
 
     @NotBlank(message = "OTP code is required")

@@ -1,5 +1,6 @@
 package com.api.v1.inventory.model.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -17,17 +18,22 @@ public class UpdateSupplierRequest {
 
     @NotBlank(message = "Supplier name is required")
     @Size(max = 100, message = "Supplier name must not exceed 100 characters")
+    @Schema(description = "Updated supplier company or vendor name", example = "Tech Supply International Ltd")
     private String name;
 
     @NotBlank(message = "Phone number is required")
     @Size(max = 20, message = "Phone number must not exceed 20 characters")
     @Pattern(regexp = "^[0-9+()\\-\\s]{7,20}$", message = "Phone number format is invalid")
+    @Schema(description = "Updated supplier contact phone number", example = "+85523999888")
     private String phone;
 
     @Email(message = "Email format is invalid")
+    @Pattern(regexp = "^$|^[a-zA-Z0-9._%+\\-]+@gmail\\.com$", message = "Only Gmail addresses (@gmail.com) are allowed")
     @Size(max = 100, message = "Email must not exceed 100 characters")
+    @Schema(description = "Updated supplier contact email (Gmail only)", example = "techsupply.contact@gmail.com")
     private String email;
 
     @Size(max = 255, message = "Address must not exceed 255 characters")
+    @Schema(description = "Updated supplier office or warehouse address", example = "Building 12, Floor 4, Russian Federation Blvd, Phnom Penh")
     private String address;
 }

@@ -8,6 +8,7 @@ import com.api.v1.inventory.model.response.StockTransactionResponse;
 import com.api.v1.inventory.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -44,7 +45,7 @@ public class ReportController {
     private final ReportService reportService;
 
     @GetMapping("/stock-transactions")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<StockTransactionResponse>>> getStockTransactionReport(
             @Parameter(description = "Filter transactions by product ID")
             @RequestParam(required = false) Long productId,
@@ -66,7 +67,7 @@ public class ReportController {
     }
 
     @GetMapping("/inventory")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<InventoryReportResponse>>> getInventoryReport(
             @Parameter(description = "Filter by product name or SKU (case-insensitive substring)")
             @RequestParam(required = false) String keyword,
@@ -74,7 +75,7 @@ public class ReportController {
             @RequestParam(required = false) Long categoryId,
             @Parameter(description = "Filter inventory by supplier ID")
             @RequestParam(required = false) Long supplierId,
-            @Parameter(description = "Filter by active product status")
+            @Parameter(description = "Filter by active product status", schema = @Schema(type = "string"))
             @RequestParam(required = false) Boolean active,
             @Parameter(description = "If true, only include products at or below their minimum stock threshold")
             @RequestParam(required = false) Boolean lowStockOnly,

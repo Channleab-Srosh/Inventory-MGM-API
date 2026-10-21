@@ -77,7 +77,7 @@ class SupplierControllerTest {
         CreateSupplierRequest request = CreateSupplierRequest.builder()
                 .name("Supplier_" + ts)
                 .phone("0981" + (ts % 100000))
-                .email("sup" + ts + "@supplier.com")
+                .email("sup" + ts + "@gmail.com")
                 .address("100 Industrial Park")
                 .build();
 
@@ -214,7 +214,7 @@ class SupplierControllerTest {
         Supplier supplier = supplierRepository.save(Supplier.builder()
                 .name("GetSup_" + ts)
                 .phone("0987" + (ts % 100000))
-                .email("get" + ts + "@test.com")
+                .email("get" + ts + "@gmail.com")
                 .address("Phnom Penh")
                 .build());
 
@@ -248,7 +248,7 @@ class SupplierControllerTest {
         UpdateSupplierRequest request = UpdateSupplierRequest.builder()
                 .name("PostUpdateSup_" + ts)
                 .phone("0989" + (ts % 100000))
-                .email("updated" + ts + "@test.com")
+                .email("updated" + ts + "@gmail.com")
                 .address("New Address 456")
                 .build();
 

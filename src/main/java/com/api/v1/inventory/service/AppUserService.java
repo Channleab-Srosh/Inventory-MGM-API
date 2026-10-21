@@ -21,4 +21,6 @@ public interface AppUserService extends UserDetailsService {
     UserResponse updateUserStatus(Long id, UpdateUserStatusRequest request);
 
     UserResponse getCurrentUserProfile();
+
+    void deleteUser(Long id);
 }

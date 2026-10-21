@@ -1,5 +1,6 @@
 package com.api.v1.inventory.model.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,12 +16,15 @@ import lombok.NoArgsConstructor;
 public class StockOperationRequest {
 
     @NotNull(message = "Product ID is required")
+    @Schema(description = "ID of the target product", example = "1")
     private Long productId;
 
     @NotNull(message = "Quantity is required")
     @Min(value = 1, message = "Quantity must be greater than zero")
+    @Schema(description = "Quantity of items to add or deduct", example = "25")
     private Integer quantity;
 
     @Size(max = 255, message = "Note cannot exceed 255 characters")
+    @Schema(description = "Optional transaction note or reference details", example = "Restocked from monthly supplier shipment #PO-2026-10")
     private String note;
 }

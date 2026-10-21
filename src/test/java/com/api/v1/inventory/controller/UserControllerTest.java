@@ -61,7 +61,7 @@ class UserControllerTest {
         String uniqueUser = "testuser_" + System.currentTimeMillis();
         CreateUserRequest request = CreateUserRequest.builder()
                 .username(uniqueUser)
-                .email(uniqueUser + "@test.com")
+                .email(uniqueUser + "@gmail.com")
                 .password("Password@123")
                 .fullName("Test User Full")
                 .phone("098765432")
@@ -84,7 +84,7 @@ class UserControllerTest {
     void testCreateDuplicateUsernameRejected() throws Exception {
         CreateUserRequest request = CreateUserRequest.builder()
                 .username("admin") // already exists
-                .email("admin_new@test.com")
+                .email("admin_new@gmail.com")
                 .password("Password@123")
                 .fullName("Duplicate Admin")
                 .role(Role.ADMIN)
@@ -151,7 +151,7 @@ class UserControllerTest {
         String uniqueUser = "updatable_" + System.currentTimeMillis();
         CreateUserRequest createRequest = CreateUserRequest.builder()
                 .username(uniqueUser)
-                .email(uniqueUser + "@test.com")
+                .email(uniqueUser + "@gmail.com")
                 .password("Password@123")
                 .fullName("Before Update")
                 .phone("011223344")
@@ -170,7 +170,7 @@ class UserControllerTest {
 
         UpdateUserRequest updateRequest = UpdateUserRequest.builder()
                 .fullName("After Update Name")
-                .email(uniqueUser + "_updated@test.com")
+                .email(uniqueUser + "_updated@gmail.com")
                 .phone("099887766")
                 .role(Role.STAFF)
                 .build();

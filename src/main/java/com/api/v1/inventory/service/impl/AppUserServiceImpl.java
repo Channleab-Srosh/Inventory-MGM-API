@@ -10,6 +10,7 @@ import com.api.v1.inventory.model.request.UpdateUserRequest;
 import com.api.v1.inventory.model.request.UpdateUserStatusRequest;
 import com.api.v1.inventory.model.response.UserResponse;
 import com.api.v1.inventory.repository.AppUserRepository;
+import com.api.v1.inventory.repository.StockTransactionRepository;
 import com.api.v1.inventory.security.CurrentUserService;
 import com.api.v1.inventory.service.AppUserService;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AppUserServiceImpl implements AppUserService {
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrentUserService currentUserService;
+    private final StockTransactionRepository stockTransactionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -113,7 +115,6 @@ public class AppUserServiceImpl implements AppUserService {
         if (currentUser.getId().equals(user.getId()) && user.getRole() == Role.ADMIN && request.getRole() != Role.ADMIN) {
             throw new ConflictException("You cannot remove your own administrator role");
         }
-
         if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
             String normalizedEmail = request.getEmail().trim().toLowerCase();
             userRepository.findByEmailIgnoreCase(normalizedEmail).ifPresent(existing -> {
@@ -161,5 +162,29 @@ public class AppUserServiceImpl implements AppUserService {
     public UserResponse getCurrentUserProfile() {
         AppUser currentUser = currentUserService.getCurrentUser();
         return UserResponse.fromEntity(currentUser);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        AppUser user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        // Prevent admin from deleting their own account
+        AppUser currentUser = currentUserService.getCurrentUser();
+        if (currentUser.getId().equals(user.getId())) {
+            throw new ConflictException("You cannot delete your own account");
+        }
+
+        // Block delete if user has stock transaction history (data integrity)
+        if (stockTransactionRepository.existsByCreatedById(id)) {
+            throw new ConflictException(
+                    "Cannot delete user '" + user.getUsername() + "' because they have stock transaction records. " +
+                    "Deactivate the account instead to preserve data integrity."
+            );
+        }
+
+        userRepository.delete(user);
+        log.info("Deleted user: id={}, username={}", id, user.getUsername());
     }
 }

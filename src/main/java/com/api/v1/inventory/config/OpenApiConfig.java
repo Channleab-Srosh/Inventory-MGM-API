@@ -1,6 +1,7 @@
 package com.api.v1.inventory.config;
 
 import com.api.v1.inventory.controller.CategoryController;
+import com.api.v1.inventory.controller.CustomerController;
 import com.api.v1.inventory.controller.DashboardController;
 import com.api.v1.inventory.controller.ProductController;
 import com.api.v1.inventory.controller.ReportController;
@@ -160,6 +161,8 @@ public class OpenApiConfig {
             return ProductController.ALLOWED_SORT_PROPERTIES;
         } else if (CategoryController.class.equals(beanType)) {
             return CategoryController.ALLOWED_SORT_PROPERTIES;
+        } else if (CustomerController.class.equals(beanType)) {
+            return CustomerController.ALLOWED_SORT_PROPERTIES;
         } else if (SupplierController.class.equals(beanType)) {
             return SupplierController.ALLOWED_SORT_PROPERTIES;
         } else if (UserController.class.equals(beanType)) {

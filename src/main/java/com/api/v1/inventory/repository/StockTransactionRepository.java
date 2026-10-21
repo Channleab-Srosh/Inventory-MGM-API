@@ -28,6 +28,8 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
 
     boolean existsByProductId(Long productId);
 
+    boolean existsByCreatedById(Long userId);
+
     @EntityGraph(attributePaths = {"product", "createdBy"})
     @Query("SELECT t FROM StockTransaction t " +
            "WHERE (:productId IS NULL OR t.product.id = :productId) " +

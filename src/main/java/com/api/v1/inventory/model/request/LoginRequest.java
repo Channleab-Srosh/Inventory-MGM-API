@@ -1,5 +1,6 @@
 package com.api.v1.inventory.model.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,8 +14,10 @@ import lombok.NoArgsConstructor;
 public class LoginRequest {
 
     @NotBlank(message = "Username is required")
+    @Schema(description = "Username of the account", example = "admin")
     private String username;
 
     @NotBlank(message = "Password is required")
+    @Schema(description = "Account password", example = "Admin@12345")
     private String password;
 }
