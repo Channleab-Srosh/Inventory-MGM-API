@@ -22,6 +22,7 @@ public class UserResponse {
     private String phone;
     private Role role;
     private boolean active;
+    private boolean mustChangePassword;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -34,6 +35,7 @@ public class UserResponse {
                 .phone(user.getPhone())
                 .role(user.getRole())
                 .active(user.isActive())
+                .mustChangePassword(user.isMustChangePassword())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

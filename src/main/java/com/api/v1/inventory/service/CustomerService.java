@@ -20,4 +20,6 @@ public interface CustomerService {
     CustomerResponse updateCustomerStatus(Long id, UpdateCustomerStatusRequest request);
 
     void deleteCustomer(Long id);
+
+    void deleteCustomers(java.util.List<Long> ids);
 }

@@ -1,5 +1,6 @@
 package com.api.v1.inventory.service.impl;
 
+import com.api.v1.inventory.common.exception.BadRequestException;
 import com.api.v1.inventory.common.exception.ConflictException;
 import com.api.v1.inventory.common.exception.ResourceNotFoundException;
 import com.api.v1.inventory.common.response.PageResponse;
@@ -16,6 +17,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -129,9 +134,36 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public void deleteCustomer(Long id) {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with ID: " + id));
-        customerRepository.delete(customer);
-        log.info("Customer deleted: id={}, name={}", id, customer.getName());
+        deleteCustomers(List.of(id));
+    }
+
+    @Override
+    @Transactional
+    public void deleteCustomers(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BadRequestException("No customer IDs provided for deletion");
+        }
+
+        // 1. Single query to load all requested customers
+        List<Customer> customers = customerRepository.findAllById(ids);
+        Set<Long> foundIds = customers.stream()
+                .map(Customer::getId)
+                .collect(Collectors.toSet());
+
+        // 2. Identify missing IDs and reject with 404 listing ALL missing IDs
+        List<Long> missingIds = ids.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!missingIds.isEmpty()) {
+            String msg = (missingIds.size() == 1)
+                    ? "Customer not found with ID: " + missingIds.get(0) + ". Nothing was deleted."
+                    : "Customers not found with IDs: " + missingIds + ". Nothing was deleted.";
+            throw new ResourceNotFoundException(msg);
+        }
+
+        // 3. Atomic delete
+        customerRepository.deleteAll(customers);
+        log.info("Deleted {} customer(s) with ids: {}", customers.size(), ids);
     }
 }

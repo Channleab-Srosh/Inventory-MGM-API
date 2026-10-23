@@ -1,5 +1,6 @@
 package com.api.v1.inventory.service.impl;
 
+import com.api.v1.inventory.common.exception.BadRequestException;
 import com.api.v1.inventory.common.exception.ConflictException;
 import com.api.v1.inventory.common.exception.ResourceNotFoundException;
 import com.api.v1.inventory.common.response.PageResponse;
@@ -20,6 +21,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -155,19 +160,60 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public void deleteProduct(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+        deleteProducts(List.of(id));
+    }
 
-        if (stockTransactionRepository.existsByProductId(id)) {
-            throw new ConflictException("Cannot delete product because it has associated transaction records. Deactivate the product instead.");
+    @Override
+    @Transactional
+    public void deleteProducts(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BadRequestException("No product IDs provided for deletion");
         }
 
-        if (product.getStockQuantity() > 0) {
-            throw new ConflictException("Cannot delete product with non-zero stock quantity (" + product.getStockQuantity() + "). Clear stock or deactivate the product instead.");
+        // 1. Single query to load all requested products
+        List<Product> products = productRepository.findAllById(ids);
+        Set<Long> foundIds = products.stream()
+                .map(Product::getId)
+                .collect(Collectors.toSet());
+
+        // 2. Identify missing IDs and reject with 404 listing ALL missing IDs
+        List<Long> missingIds = ids.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!missingIds.isEmpty()) {
+            String msg = (missingIds.size() == 1)
+                    ? "Product not found with id: " + missingIds.get(0) + ". Nothing was deleted."
+                    : "Products not found with IDs: " + missingIds + ". Nothing was deleted.";
+            throw new ResourceNotFoundException(msg);
         }
 
-        productRepository.delete(product);
-        log.info("Product deleted successfully with id: {}", id);
+        // 3. Check for stock transactions (409 Conflict)
+        List<Long> referencedIds = stockTransactionRepository.findReferencedProductIds(ids);
+        if (!referencedIds.isEmpty()) {
+            throw new ConflictException(
+                    "Cannot delete product because it has associated transaction records. Deactivate the product instead. Referenced product IDs: "
+                            + referencedIds + ". Nothing was deleted."
+            );
+        }
+
+        // 4. Check for non-zero stock quantity (409 Conflict)
+        List<Product> nonZeroStockProducts = products.stream()
+                .filter(p -> p.getStockQuantity() != null && p.getStockQuantity() > 0)
+                .toList();
+        if (!nonZeroStockProducts.isEmpty()) {
+            List<String> details = nonZeroStockProducts.stream()
+                    .map(p -> p.getId() + " (" + p.getSku() + ", stock: " + p.getStockQuantity() + ")")
+                    .toList();
+            throw new ConflictException(
+                    "Cannot delete product with non-zero stock quantity. Clear stock or deactivate the product instead. Products with stock: "
+                            + details + ". Nothing was deleted."
+            );
+        }
+
+        // 5. Atomic delete
+        productRepository.deleteAll(products);
+        log.info("Deleted {} product(s) with ids: {}", products.size(), ids);
     }
 
     @Override

@@ -156,6 +156,9 @@ class AuthControllerTest {
     private com.api.v1.inventory.repository.AppUserTokenRepository appUserTokenRepository;
 
     @Autowired
+    private com.api.v1.inventory.service.impl.AuthServiceImpl authServiceImpl;
+
+    @Autowired
     private com.api.v1.inventory.repository.AppUserRepository appUserRepository;
 
     @Autowired
@@ -741,5 +744,177 @@ class AuthControllerTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/send-registration-otp - Success sends OTP for valid Gmail")
+    void testSendRegistrationOtpSuccess() throws Exception {
+        String testEmail = "testreg" + System.currentTimeMillis() + "@gmail.com";
+        var request = com.api.v1.inventory.model.request.SendRegistrationOtpRequest.builder()
+                .email(testEmail)
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/send-registration-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", containsString("Verification code (OTP) has been sent")));
+
+        String cachedOtp = authServiceImpl.getRegistrationOtpForTesting(testEmail);
+        org.junit.jupiter.api.Assertions.assertNotNull(cachedOtp, "Registration OTP must be cached in memory");
+        org.junit.jupiter.api.Assertions.assertEquals(6, cachedOtp.length());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/send-registration-otp - Reject non-Gmail address")
+    void testSendRegistrationOtpRejectNonGmail() throws Exception {
+        var request = com.api.v1.inventory.model.request.SendRegistrationOtpRequest.builder()
+                .email("user@yahoo.com")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/send-registration-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/register - Success creates user and auto-logins with JWT token")
+    void testRegisterSuccessWithAutoLogin() throws Exception {
+        long ts = System.currentTimeMillis();
+        String testEmail = "selfreg" + ts + "@gmail.com";
+        String username = "selfuser_" + ts;
+
+        // 1. Generate OTP
+        mockMvc.perform(post("/api/v1/auth/send-registration-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                com.api.v1.inventory.model.request.SendRegistrationOtpRequest.builder()
+                                        .email(testEmail)
+                                        .build())))
+                .andExpect(status().isOk());
+
+        String generatedOtp = authServiceImpl.getRegistrationOtpForTesting(testEmail);
+        org.junit.jupiter.api.Assertions.assertNotNull(generatedOtp, "Generated OTP must be in cache");
+
+        // 2. Register
+        var registerRequest = com.api.v1.inventory.model.request.RegisterRequest.builder()
+                .username(username)
+                .email(testEmail)
+                .password("Password@123")
+                .fullName("Self Registered Staff")
+                .phone("+85512345678")
+                .otp(generatedOtp)
+                .build();
+
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.token", notNullValue()))
+                .andExpect(jsonPath("$.data.username", is(username)))
+                .andExpect(jsonPath("$.data.role", is("STAFF")))
+                .andExpect(jsonPath("$.data.mustChangePassword", is(false)))
+                .andReturn();
+
+        // 3. Verify returned JWT token immediately works on protected endpoints
+        String jwtToken = objectMapper.readTree(registerResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + jwtToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.username", is(username)));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/register - Rejects invalid OTP")
+    void testRegisterInvalidOtpRejected() throws Exception {
+        long ts = System.currentTimeMillis();
+        String testEmail = "wrongotp" + ts + "@gmail.com";
+
+        mockMvc.perform(post("/api/v1/auth/send-registration-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                com.api.v1.inventory.model.request.SendRegistrationOtpRequest.builder()
+                                        .email(testEmail)
+                                        .build())))
+                .andExpect(status().isOk());
+
+        var registerRequest = com.api.v1.inventory.model.request.RegisterRequest.builder()
+                .username("wrong_user_" + ts)
+                .email(testEmail)
+                .password("Password@123")
+                .fullName("Wrong OTP User")
+                .otp("999999")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid verification code")));
+    }
+
+    @Test
+    @DisplayName("Admin-created user requires password change on first login")
+    void testAdminCreatedUserRequiresPasswordChangeOnFirstLogin() throws Exception {
+        long ts = System.currentTimeMillis();
+        String username = "admin_created_" + ts;
+
+        // Admin creates user via entity with mustChangePassword = true (matching AppUserServiceImpl.createUser)
+        var user = appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
+                .username(username)
+                .email(username + "@gmail.com")
+                .password(passwordEncoder.encode("TempAdminPass@123"))
+                .fullName("Admin Created Staff")
+                .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
+                .active(true)
+                .mustChangePassword(true)
+                .build());
+
+        // First login -> mustChangePassword is TRUE
+        LoginRequest loginRequest = LoginRequest.builder()
+                .username(username)
+                .password("TempAdminPass@123")
+                .build();
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.mustChangePassword", is(true)))
+                .andReturn();
+
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        // User changes password
+        var changeReq = com.api.v1.inventory.model.request.ChangePasswordRequest.builder()
+                .currentPassword("TempAdminPass@123")
+                .newPassword("MyOwnSecurePass@123")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/change-password")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(changeReq)))
+                .andExpect(status().isOk());
+
+        // Subsequent login -> mustChangePassword is FALSE
+        LoginRequest secondLogin = LoginRequest.builder()
+                .username(username)
+                .password("MyOwnSecurePass@123")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(secondLogin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.mustChangePassword", is(false)));
     }
 }

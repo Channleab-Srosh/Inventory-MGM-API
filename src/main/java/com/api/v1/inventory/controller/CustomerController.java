@@ -1,6 +1,7 @@
 package com.api.v1.inventory.controller;
 
 import com.api.v1.inventory.common.pagination.PaginationValidator;
+import com.api.v1.inventory.common.util.IdListParser;
 import com.api.v1.inventory.common.response.ApiResponse;
 import com.api.v1.inventory.common.response.PageResponse;
 import com.api.v1.inventory.model.request.CreateCustomerRequest;
@@ -8,7 +9,9 @@ import com.api.v1.inventory.model.request.UpdateCustomerRequest;
 import com.api.v1.inventory.model.request.UpdateCustomerStatusRequest;
 import com.api.v1.inventory.model.response.CustomerResponse;
 import com.api.v1.inventory.service.CustomerService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -84,10 +87,25 @@ public class CustomerController {
         return ResponseEntity.ok(ApiResponse.ok(response, "Customer status updated successfully"));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{ids}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> deleteCustomer(@PathVariable Long id) {
-        customerService.deleteCustomer(id);
-        return ResponseEntity.ok(ApiResponse.ok(null, "Customer deleted successfully"));
+    @Operation(
+            summary = "Delete single or multiple customers by ID",
+            description = "Deletes a single customer or multiple customers given as comma-separated IDs (e.g. '1' or '1,2,3'). Max 100 IDs. Atomic operation."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Customer/Customers deleted successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid IDs format, non-numeric, negative, zero, empty, or exceeds 100 IDs"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - requires ADMIN role"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "One or more customer IDs not found")
+    })
+    public ResponseEntity<ApiResponse<Void>> deleteCustomers(
+            @Parameter(description = "Single ID or comma-separated IDs", example = "1,2,3")
+            @PathVariable String ids) {
+        List<Long> idList = IdListParser.parse(ids);
+        customerService.deleteCustomers(idList);
+        String message = idList.size() > 1 ? "Customers deleted successfully" : "Customer deleted successfully";
+        return ResponseEntity.ok(ApiResponse.ok(null, message));
     }
 }

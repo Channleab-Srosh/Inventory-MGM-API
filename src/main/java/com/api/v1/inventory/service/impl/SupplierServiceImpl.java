@@ -1,5 +1,6 @@
 package com.api.v1.inventory.service.impl;
 
+import com.api.v1.inventory.common.exception.BadRequestException;
 import com.api.v1.inventory.common.exception.ConflictException;
 import com.api.v1.inventory.common.exception.ResourceNotFoundException;
 import com.api.v1.inventory.common.response.PageResponse;
@@ -16,6 +17,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -125,14 +130,45 @@ public class SupplierServiceImpl implements SupplierService {
     @Override
     @Transactional
     public void deleteSupplier(Long id) {
-        Supplier supplier = supplierRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id: " + id));
+        deleteSuppliers(List.of(id));
+    }
 
-        if (productRepository.existsBySupplierId(id)) {
-            throw new ConflictException("Cannot delete supplier because it is currently referenced by one or more products.");
+    @Override
+    @Transactional
+    public void deleteSuppliers(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BadRequestException("No supplier IDs provided for deletion");
         }
 
-        supplierRepository.delete(supplier);
-        log.info("Supplier deleted successfully with id: {}", id);
+        // 1. Single query to load all requested suppliers
+        List<Supplier> suppliers = supplierRepository.findAllById(ids);
+        Set<Long> foundIds = suppliers.stream()
+                .map(Supplier::getId)
+                .collect(Collectors.toSet());
+
+        // 2. Identify missing IDs and reject with 404 listing ALL missing IDs
+        List<Long> missingIds = ids.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!missingIds.isEmpty()) {
+            String msg = (missingIds.size() == 1)
+                    ? "Supplier not found with id: " + missingIds.get(0) + ". Nothing was deleted."
+                    : "Suppliers not found with IDs: " + missingIds + ". Nothing was deleted.";
+            throw new ResourceNotFoundException(msg);
+        }
+
+        // 3. Check for product references (409 Conflict)
+        List<Long> referencedIds = productRepository.findReferencedSupplierIds(ids);
+        if (!referencedIds.isEmpty()) {
+            throw new ConflictException(
+                    "Cannot delete supplier because it is currently referenced by one or more products. Referenced supplier IDs: "
+                            + referencedIds + ". Nothing was deleted."
+            );
+        }
+
+        // 4. Atomic delete
+        supplierRepository.deleteAll(suppliers);
+        log.info("Deleted {} supplier(s) with ids: {}", suppliers.size(), ids);
     }
 }

@@ -64,6 +64,8 @@ public class OpenApiConfig {
         return openApi -> openApi.getPaths().forEach((path, pathItem) -> {
             // Change "/api/auth" to match your actual auth URL prefix (e.g., "/auth" or "/api/v1/auth")
             if (path.startsWith("/api/v1/auth/login") ||
+                    path.startsWith("/api/v1/auth/send-registration-otp") ||
+                    path.startsWith("/api/v1/auth/register") ||
                     path.startsWith("/api/v1/auth/forgot-password") ||
                     path.startsWith("/api/v1/auth/reset-password")
                 ) {
@@ -122,8 +124,8 @@ public class OpenApiConfig {
                         .schema(new IntegerSchema()._default(defaultSize).minimum(BigDecimal.ONE).maximum(new BigDecimal("100")));
 
                 String sortDescription = (allowedProperties != null && !allowedProperties.isEmpty())
-                        ? "Format: `property,direction` (asc or desc). Repeat for multiple sorts. Allowed: " + String.join(", ", allowedProperties) + "."
-                        : "Format: `property,direction` (asc or desc). Repeat for multiple sorts.";
+                        ? "Format: property,direction (asc or desc). Repeat for multiple sorts. Allowed: " + String.join(", ", allowedProperties) + "."
+                        : "Format: property,direction (asc or desc). Repeat for multiple sorts.";
 
                 Parameter sortParam = new QueryParameter()
                         .name("sort")

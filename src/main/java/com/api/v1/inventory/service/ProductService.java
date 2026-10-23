@@ -27,4 +27,6 @@ public interface ProductService {
     ProductResponse updateProductStatus(Long id, com.api.v1.inventory.model.request.UpdateProductStatusRequest request);
 
     void deleteProduct(Long id);
+
+    void deleteProducts(java.util.List<Long> ids);
 }

@@ -17,4 +17,6 @@ public interface SupplierService {
     SupplierResponse updateSupplier(Long id, UpdateSupplierRequest request);
 
     void deleteSupplier(Long id);
+
+    void deleteSuppliers(java.util.List<Long> ids);
 }

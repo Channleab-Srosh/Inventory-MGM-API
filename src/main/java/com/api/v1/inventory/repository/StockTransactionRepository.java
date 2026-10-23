@@ -28,6 +28,9 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
 
     boolean existsByProductId(Long productId);
 
+    @Query("SELECT DISTINCT t.product.id FROM StockTransaction t WHERE t.product.id IN :productIds")
+    java.util.List<Long> findReferencedProductIds(@Param("productIds") java.util.Collection<Long> productIds);
+
     boolean existsByCreatedById(Long userId);
 
     @EntityGraph(attributePaths = {"product", "createdBy"})

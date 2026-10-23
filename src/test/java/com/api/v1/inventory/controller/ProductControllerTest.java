@@ -499,11 +499,143 @@ class ProductControllerTest {
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.message", containsString("deleted successfully")));
+                .andExpect(jsonPath("$.message", is("Product deleted successfully")));
 
         mockMvc.perform(get("/api/v1/products/" + product.getId())
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - Bulk delete multiple products successfully")
+    void testAdminDeletesMultipleProductsSuccessfully() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product p1 = productRepository.save(Product.builder().sku("SKU-BULK-P1-" + ts).name("P1").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+        Product p2 = productRepository.save(Product.builder().sku("SKU-BULK-P2-" + ts).name("P2").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+        Product p3 = productRepository.save(Product.builder().sku("SKU-BULK-P3-" + ts).name("P3").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+
+        mockMvc.perform(delete("/api/v1/products/" + p1.getId() + "," + p2.getId() + "," + p3.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Products deleted successfully")));
+
+        org.junit.jupiter.api.Assertions.assertFalse(productRepository.existsById(p1.getId()));
+        org.junit.jupiter.api.Assertions.assertFalse(productRepository.existsById(p2.getId()));
+        org.junit.jupiter.api.Assertions.assertFalse(productRepository.existsById(p3.getId()));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - Empty entries like '1,2,,3' are skipped")
+    void testBulkDeleteSkipsEmptyEntries() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product p1 = productRepository.save(Product.builder().sku("SKU-BULK-SK1-" + ts).name("SK1").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+        Product p2 = productRepository.save(Product.builder().sku("SKU-BULK-SK2-" + ts).name("SK2").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+
+        mockMvc.perform(delete("/api/v1/products/" + p1.getId() + ",," + p2.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Products deleted successfully")));
+
+        org.junit.jupiter.api.Assertions.assertFalse(productRepository.existsById(p1.getId()));
+        org.junit.jupiter.api.Assertions.assertFalse(productRepository.existsById(p2.getId()));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - Duplicate IDs are handled cleanly")
+    void testBulkDeleteHandlesDuplicateIds() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product p1 = productRepository.save(Product.builder().sku("SKU-BULK-DUP1-" + ts).name("DUP1").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+        Product p2 = productRepository.save(Product.builder().sku("SKU-BULK-DUP2-" + ts).name("DUP2").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+
+        mockMvc.perform(delete("/api/v1/products/" + p1.getId() + "," + p1.getId() + "," + p2.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Products deleted successfully")));
+
+        org.junit.jupiter.api.Assertions.assertFalse(productRepository.existsById(p1.getId()));
+        org.junit.jupiter.api.Assertions.assertFalse(productRepository.existsById(p2.getId()));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - Non-numeric ID returns 400")
+    void testBulkDeleteNonNumericReturns400() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/abc")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("positive numbers")));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - Zero or negative ID returns 400")
+    void testBulkDeleteZeroOrNegativeReturns400() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/0")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("greater than zero")));
+
+        mockMvc.perform(delete("/api/v1/products/-1")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("greater than zero")));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - Only commas returns 400")
+    void testBulkDeleteOnlyCommasReturns400() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/,")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("No valid IDs provided")));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - More than 100 IDs returns 400")
+    void testBulkDeleteMoreThan100IdsReturns400() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= 101; i++) {
+            if (i > 1) sb.append(",");
+            sb.append(i);
+        }
+
+        mockMvc.perform(delete("/api/v1/products/" + sb)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Cannot process more than 100 IDs")));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - One missing ID returns 404 and deletes nothing")
+    void testBulkDeleteOneMissingIdReturns404AndDeletesNothing() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product existing = productRepository.save(Product.builder().sku("SKU-BULK-EX1-" + ts).name("EX1").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+
+        mockMvc.perform(delete("/api/v1/products/" + existing.getId() + ",999999")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Product not found with id: 999999")))
+                .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
+
+        org.junit.jupiter.api.Assertions.assertTrue(productRepository.existsById(existing.getId()), "Existing product must NOT be deleted");
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - Several missing IDs returns 404 listing all and deletes nothing")
+    void testBulkDeleteSeveralMissingIdsReturns404ListingAll() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/999991,999992")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Products not found with IDs: [999991, 999992]")))
+                .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
     }
 
     @Test
@@ -524,7 +656,8 @@ class ProductControllerTest {
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.message", containsString("non-zero stock quantity")));
+                .andExpect(jsonPath("$.message", containsString("non-zero stock quantity")))
+                .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
     }
 
     @Test
@@ -557,7 +690,37 @@ class ProductControllerTest {
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.message", containsString("associated transaction records")));
+                .andExpect(jsonPath("$.message", containsString("associated transaction records")))
+                .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/products/{ids} - Referenced product returns 409 and deletes nothing")
+    void testBulkDeleteReferencedProductReturns409AndDeletesNothing() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product freeProd = productRepository.save(Product.builder().sku("SKU-FREE-PROD-" + ts).name("Free").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+        Product refProd = productRepository.save(Product.builder().sku("SKU-REF-PROD-" + ts).name("Ref").category(sampleCategory).unitPrice(new BigDecimal("10.00")).stockQuantity(0).minimumStock(1).active(true).build());
+
+        AppUser adminUser = appUserRepository.findByUsernameIgnoreCase("admin").orElseThrow();
+        stockTransactionRepository.save(StockTransaction.builder()
+                .product(refProd)
+                .transactionType(TransactionType.STOCK_IN)
+                .quantity(10)
+                .quantityBefore(0)
+                .quantityAfter(10)
+                .note("Bulk test transaction record")
+                .createdBy(adminUser)
+                .build());
+
+        mockMvc.perform(delete("/api/v1/products/" + freeProd.getId() + "," + refProd.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("associated transaction records")))
+                .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
+
+        org.junit.jupiter.api.Assertions.assertTrue(productRepository.existsById(freeProd.getId()), "Free product must NOT be deleted");
+        org.junit.jupiter.api.Assertions.assertTrue(productRepository.existsById(refProd.getId()), "Ref product must NOT be deleted");
     }
 
     @Test
@@ -581,12 +744,21 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("DELETE /api/v1/products/{id} - Unauthenticated request returns 401")
+    void testUnauthenticatedDeleteProductReturns401() throws Exception {
+        mockMvc.perform(delete("/api/v1/products/1"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
     @DisplayName("DELETE /api/v1/products/{id} - Nonexistent product returns 404")
     void testDeleteNonExistentProductReturns404() throws Exception {
         mockMvc.perform(delete("/api/v1/products/999999")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success", is(false)));
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
     }
 
     @Test

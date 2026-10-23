@@ -27,7 +27,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsByCategoryId(Long categoryId);
 
+    @Query("SELECT DISTINCT p.category.id FROM Product p WHERE p.category.id IN :categoryIds")
+    java.util.List<Long> findReferencedCategoryIds(@Param("categoryIds") java.util.Collection<Long> categoryIds);
+
     boolean existsBySupplierId(Long supplierId);
+
+    @Query("SELECT DISTINCT p.supplier.id FROM Product p WHERE p.supplier.id IN :supplierIds")
+    java.util.List<Long> findReferencedSupplierIds(@Param("supplierIds") java.util.Collection<Long> supplierIds);
 
     @EntityGraph(attributePaths = {"category", "supplier"})
     @Query("SELECT p FROM Product p " +

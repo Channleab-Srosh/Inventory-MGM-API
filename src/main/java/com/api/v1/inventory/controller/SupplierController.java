@@ -20,6 +20,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.api.v1.inventory.common.pagination.PaginationValidator;
+import com.api.v1.inventory.common.util.IdListParser;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Parameter;
@@ -73,10 +75,26 @@ public class SupplierController {
         return ResponseEntity.ok(ApiResponse.ok(response, "Supplier updated successfully"));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{ids}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<ApiResponse<Void>> deleteSupplier(@PathVariable Long id) {
-        supplierService.deleteSupplier(id);
-        return ResponseEntity.ok(ApiResponse.ok(null, "Supplier deleted successfully"));
+    @Operation(
+            summary = "Delete single or multiple suppliers by ID",
+            description = "Deletes a single supplier or multiple suppliers given as comma-separated IDs (e.g. '1' or '1,2,3'). Max 100 IDs. Atomic operation."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Supplier/Suppliers deleted successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid IDs format, non-numeric, negative, zero, empty, or exceeds 100 IDs"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - requires ADMIN or MANAGER role"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "One or more supplier IDs not found"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "One or more suppliers are referenced by products")
+    })
+    public ResponseEntity<ApiResponse<Void>> deleteSuppliers(
+            @Parameter(description = "Single ID or comma-separated IDs", example = "1,2,3")
+            @PathVariable String ids) {
+        List<Long> idList = IdListParser.parse(ids);
+        supplierService.deleteSuppliers(idList);
+        String message = idList.size() > 1 ? "Suppliers deleted successfully" : "Supplier deleted successfully";
+        return ResponseEntity.ok(ApiResponse.ok(null, message));
     }
 }

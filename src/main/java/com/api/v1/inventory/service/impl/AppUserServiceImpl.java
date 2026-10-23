@@ -77,6 +77,7 @@ public class AppUserServiceImpl implements AppUserService {
                 .phone(request.getPhone() != null ? request.getPhone().trim() : null)
                 .role(request.getRole())
                 .active(true)
+                .mustChangePassword(true)
                 .build();
 
         AppUser saved = userRepository.save(user);
