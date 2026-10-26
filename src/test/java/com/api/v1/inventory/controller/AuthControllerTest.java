@@ -1,5 +1,6 @@
 package com.api.v1.inventory.controller;
 
+import com.api.v1.inventory.model.entity.AppUser;
 import com.api.v1.inventory.model.request.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -163,6 +164,9 @@ class AuthControllerTest {
 
     @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private com.api.v1.inventory.config.AppProperty appProperty;
 
     @Test
     @DisplayName("GET /api/v1/auth/me - Failure when invalid token provided")
@@ -916,5 +920,24 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(secondLogin)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.mustChangePassword", is(false)));
+    }
+
+    @Test
+    @DisplayName("OTP expiration configuration - OTP expires after 50 seconds")
+    void testOtpExpiresAfter50Seconds() throws Exception {
+        org.junit.jupiter.api.Assertions.assertEquals(50, appProperty.getOtp().getPendingExpiration());
+
+        AppUser staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();
+        authServiceImpl.forgotPassword(com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
+                .email(staffUser.getEmail())
+                .build());
+
+        var tokens = appUserTokenRepository.findByUserIdAndRevokedFalse(staffUser.getId());
+        org.junit.jupiter.api.Assertions.assertFalse(tokens.isEmpty());
+        var token = tokens.get(0);
+
+        long diffSeconds = java.time.Duration.between(java.time.Instant.now(), token.getExpiresAt()).getSeconds();
+        org.junit.jupiter.api.Assertions.assertTrue(diffSeconds >= 45 && diffSeconds <= 50,
+                "OTP expiration should be ~50 seconds in the future, got: " + diffSeconds);
     }
 }

@@ -1,5 +1,6 @@
 package com.api.v1.inventory.service.impl;
 
+import com.api.v1.inventory.common.exception.BadRequestException;
 import com.api.v1.inventory.common.exception.ConflictException;
 import com.api.v1.inventory.common.exception.ResourceNotFoundException;
 import com.api.v1.inventory.common.response.PageResponse;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,11 +28,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AppUserServiceImpl implements AppUserService {
+
+    public static final int MAX_ADMIN_ACCOUNTS = 3;
 
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -66,6 +73,27 @@ public class AppUserServiceImpl implements AppUserService {
             String normalizedEmail = request.getEmail().trim().toLowerCase();
             if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
                 throw new ConflictException("Email '" + request.getEmail() + "' is already in use");
+            }
+        }
+
+        String currentUsername = currentUserService.getCurrentUsername();
+        if (currentUsername != null) {
+            userRepository.findByUsernameIgnoreCase(currentUsername).ifPresent(currentUser -> {
+                if (currentUser.getRole() == Role.STAFF) {
+                    throw new AccessDeniedException("Staff role is not allowed to create users");
+                }
+                if (currentUser.getRole() == Role.MANAGER) {
+                    if (request.getRole() != Role.STAFF && request.getRole() != Role.ADMIN) {
+                        throw new BadRequestException("Management role is only permitted to create Staff and Admin accounts");
+                    }
+                }
+            });
+        }
+
+        if (request.getRole() == Role.ADMIN) {
+            long adminCount = userRepository.countByRole(Role.ADMIN);
+            if (adminCount >= MAX_ADMIN_ACCOUNTS) {
+                throw new BadRequestException("Cannot create admin user. Maximum limit of " + MAX_ADMIN_ACCOUNTS + " administrator accounts has been reached.");
             }
         }
 
@@ -115,6 +143,13 @@ public class AppUserServiceImpl implements AppUserService {
         AppUser currentUser = currentUserService.getCurrentUser();
         if (currentUser.getId().equals(user.getId()) && user.getRole() == Role.ADMIN && request.getRole() != Role.ADMIN) {
             throw new ConflictException("You cannot remove your own administrator role");
+        }
+
+        if (request.getRole() == Role.ADMIN && user.getRole() != Role.ADMIN) {
+            long adminCount = userRepository.countByRole(Role.ADMIN);
+            if (adminCount >= MAX_ADMIN_ACCOUNTS) {
+                throw new BadRequestException("Cannot update user role to ADMIN. Maximum limit of " + MAX_ADMIN_ACCOUNTS + " administrator accounts has been reached.");
+            }
         }
         if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
             String normalizedEmail = request.getEmail().trim().toLowerCase();
@@ -168,24 +203,51 @@ public class AppUserServiceImpl implements AppUserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        AppUser user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+        deleteUsers(List.of(id));
+    }
 
-        // Prevent admin from deleting their own account
-        AppUser currentUser = currentUserService.getCurrentUser();
-        if (currentUser.getId().equals(user.getId())) {
-            throw new ConflictException("You cannot delete your own account");
+    @Override
+    @Transactional
+    public void deleteUsers(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BadRequestException("No user IDs provided for deletion");
         }
 
-        // Block delete if user has stock transaction history (data integrity)
-        if (stockTransactionRepository.existsByCreatedById(id)) {
+        // 1. Single query to load all requested users
+        List<AppUser> users = userRepository.findAllById(ids);
+        Set<Long> foundIds = users.stream()
+                .map(AppUser::getId)
+                .collect(Collectors.toSet());
+
+        // 2. Identify missing IDs and reject with 404 listing ALL missing IDs
+        List<Long> missingIds = ids.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!missingIds.isEmpty()) {
+            String msg = (missingIds.size() == 1)
+                    ? "User not found with ID: " + missingIds.get(0) + ". Nothing was deleted."
+                    : "Users not found with IDs: " + missingIds + ". Nothing was deleted.";
+            throw new ResourceNotFoundException(msg);
+        }
+
+        // 3. Prevent admin from deleting their own account
+        AppUser currentUser = currentUserService.getCurrentUser();
+        if (currentUser != null && ids.contains(currentUser.getId())) {
+            throw new ConflictException("You cannot delete your own account. Nothing was deleted.");
+        }
+
+        // 4. Block delete if any user has stock transaction history (data integrity)
+        List<Long> referencedIds = stockTransactionRepository.findReferencedUserIds(ids);
+        if (!referencedIds.isEmpty()) {
             throw new ConflictException(
-                    "Cannot delete user '" + user.getUsername() + "' because they have stock transaction records. " +
-                    "Deactivate the account instead to preserve data integrity."
+                    "Cannot delete user because they have stock transaction records. Deactivate the account instead to preserve data integrity. Referenced user IDs: "
+                            + referencedIds + ". Nothing was deleted."
             );
         }
 
-        userRepository.delete(user);
-        log.info("Deleted user: id={}, username={}", id, user.getUsername());
+        // 5. Atomic delete
+        userRepository.deleteAll(users);
+        log.info("Deleted {} user(s) with ids: {}", users.size(), ids);
     }
 }

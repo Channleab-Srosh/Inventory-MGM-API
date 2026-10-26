@@ -33,6 +33,9 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
 
     boolean existsByCreatedById(Long userId);
 
+    @Query("SELECT DISTINCT t.createdBy.id FROM StockTransaction t WHERE t.createdBy.id IN :userIds")
+    java.util.List<Long> findReferencedUserIds(@Param("userIds") java.util.Collection<Long> userIds);
+
     @EntityGraph(attributePaths = {"product", "createdBy"})
     @Query("SELECT t FROM StockTransaction t " +
            "WHERE (:productId IS NULL OR t.product.id = :productId) " +

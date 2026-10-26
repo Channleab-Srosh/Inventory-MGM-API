@@ -9,9 +9,10 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "app")
 public class AppProperty {
 
-    /** OTP expiry expressed in minutes – single source of truth used by both
+    /** OTP expiry expressed in seconds – single source of truth used by both
      *  the backend expiration logic and the email text. */
-    public static final int OTP_EXPIRY_MINUTES = 5;
+    public static final int OTP_EXPIRY_SECONDS = 50;
+    public static final int OTP_EXPIRY_MINUTES = 1;
 
     private Jwt jwt = new Jwt();
     private Otp otp = new Otp();
@@ -28,7 +29,7 @@ public class AppProperty {
     @Data
     public static class Otp {
         /** How long (seconds) an unverified OTP stays valid. Defaults to
-         *  {@link AppProperty#OTP_EXPIRY_MINUTES} × 60 when not set. */
+         *  {@link AppProperty#OTP_EXPIRY_SECONDS} when not set. */
         private int pendingExpiration;
         private int verifiedExpiration;
         /** Maximum number of wrong OTP attempts before the code is invalidated. */

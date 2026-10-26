@@ -71,11 +71,11 @@ The system enforces strict role-based access control (RBAC) at both the security
 | **Auth** | `POST` | `/api/v1/auth/forgot-password` | Public | Send 6-digit OTP to staff email |
 | **Auth** | `POST` | `/api/v1/auth/reset-password` | Public | Reset password using verified 6-digit OTP |
 | **Auth** | `POST` | `/api/v1/auth/change-password` | ADMIN, STAFF | Change password for authenticated session |
-| **Users** | `POST` | `/api/v1/users` | **ADMIN** | Create new user account |
-| **Users** | `GET` | `/api/v1/users` | **ADMIN** | Paginated user list with keyword search |
-| **Users** | `GET` | `/api/v1/users/{id}` | **ADMIN** | User details by ID |
-| **Users** | `PUT` | `/api/v1/users/{id}` | **ADMIN** | Update user profile |
-| **Users** | `PATCH` | `/api/v1/users/{id}/status` | **ADMIN** | Activate / deactivate user account |
+| **Users** | `POST` | `/api/v1/users` | ADMIN, MANAGER | Create new user account (Staff allowed; Admin allowed up to max 3) |
+| **Users** | `GET` | `/api/v1/users` | ADMIN, MANAGER | Paginated user list with keyword search |
+| **Users** | `GET` | `/api/v1/users/{id}` | ADMIN, MANAGER | User details by ID |
+| **Users** | `PUT` | `/api/v1/users/{id}` | ADMIN, MANAGER | Update user profile |
+| **Users** | `PATCH` | `/api/v1/users/{id}/status` | ADMIN, MANAGER | Activate / deactivate user account |
 | **Categories** | `POST` | `/api/v1/categories` | **ADMIN** | Create category |
 | **Categories** | `GET` | `/api/v1/categories` | ADMIN, STAFF | List categories with search & pagination |
 | **Categories** | `GET` | `/api/v1/categories/{id}` | ADMIN, STAFF | Get category by ID |

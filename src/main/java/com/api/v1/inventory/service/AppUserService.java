@@ -23,4 +23,6 @@ public interface AppUserService extends UserDetailsService {
     UserResponse getCurrentUserProfile();
 
     void deleteUser(Long id);
+
+    void deleteUsers(java.util.List<Long> ids);
 }

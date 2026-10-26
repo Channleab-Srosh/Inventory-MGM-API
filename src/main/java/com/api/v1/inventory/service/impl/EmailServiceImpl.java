@@ -44,7 +44,7 @@ public class EmailServiceImpl implements EmailService {
 
         int expirationSeconds = appProperty.getOtp().getPendingExpiration() > 0
                 ? appProperty.getOtp().getPendingExpiration()
-                : AppProperty.OTP_EXPIRY_MINUTES * 60;
+                : AppProperty.OTP_EXPIRY_SECONDS;
 
         String expirationText;
         if (expirationSeconds >= 60 && expirationSeconds % 60 == 0) {
@@ -85,7 +85,16 @@ public class EmailServiceImpl implements EmailService {
     public void sendRegistrationOtpEmail(String toEmail, String recipientName, String rawOtp) {
         log.info("Dispatching registration OTP notification for [{}]", toEmail);
 
-        int expiryMinutes = AppProperty.OTP_EXPIRY_MINUTES;
+        int expirationSeconds = appProperty.getOtp().getPendingExpiration() > 0
+                ? appProperty.getOtp().getPendingExpiration()
+                : AppProperty.OTP_EXPIRY_SECONDS;
+
+        String expirationText;
+        if (expirationSeconds >= 60 && expirationSeconds % 60 == 0) {
+            expirationText = (expirationSeconds / 60) + " minutes";
+        } else {
+            expirationText = expirationSeconds + " seconds";
+        }
 
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null || mailFrom == null || mailFrom.trim().isEmpty()) {
@@ -98,13 +107,15 @@ public class EmailServiceImpl implements EmailService {
             String htmlBody = loadOtpEmailTemplate()
                     .replace("{{NAME}}", escapeHtml(recipientName))
                     .replace("{{OTP_CODE}}", escapeHtml(rawOtp))
-                    .replace("{{EXPIRY_MINUTES}}", String.valueOf(expiryMinutes))
+                    .replace("{{EXPIRY_TIME}}", escapeHtml(expirationText))
+                    .replace("{{EXPIRY_MINUTES}} minutes", escapeHtml(expirationText))
+                    .replace("{{EXPIRY_MINUTES}}", escapeHtml(expirationText))
                     .replace("{{YEAR}}", String.valueOf(Year.now().getValue()));
 
             // ---- Plain-text fallback ----
             String plainText = "Hello, " + recipientName + "\n\n"
                     + "Your Inventory Management System verification code is: " + rawOtp + "\n\n"
-                    + "This code expires in " + expiryMinutes + " minutes.\n"
+                    + "This code expires in " + expirationText + ".\n"
                     + "Do not share it with anyone.\n\n"
                     + "If you did not create an account, please ignore this email.\n\n"
                     + "— " + SENDER_NAME;
@@ -149,7 +160,7 @@ public class EmailServiceImpl implements EmailService {
         return "<html><body>"
                 + "<p>Hello, {{NAME}}</p>"
                 + "<p>Your verification code is: <strong>{{OTP_CODE}}</strong></p>"
-                + "<p>It expires in {{EXPIRY_MINUTES}} minutes.</p>"
+                + "<p>It expires in {{EXPIRY_TIME}}.</p>"
                 + "<p>&copy; {{YEAR}} Inventory Management System</p>"
                 + "</body></html>";
     }

@@ -11,7 +11,6 @@ import com.api.v1.inventory.controller.UserController;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.ArraySchema;
@@ -124,21 +123,14 @@ public class OpenApiConfig {
                         .schema(new IntegerSchema()._default(defaultSize).minimum(BigDecimal.ONE).maximum(new BigDecimal("100")));
 
                 String sortDescription = (allowedProperties != null && !allowedProperties.isEmpty())
-                        ? "Format: property,direction (asc or desc). Repeat for multiple sorts. Allowed: " + String.join(", ", allowedProperties) + "."
-                        : "Format: property,direction (asc or desc). Repeat for multiple sorts.";
+                        ? "Format: `property,direction` (asc or desc). Repeat for multiple sorts. Allowed: " + String.join(", ", allowedProperties) + "."
+                        : "Format: `property,direction` (asc or desc). Repeat for multiple sorts.";
 
                 Parameter sortParam = new QueryParameter()
                         .name("sort")
                         .required(false)
                         .description(sortDescription)
                         .schema(new ArraySchema().items(new StringSchema()));
-
-                if (allowedProperties != null && !allowedProperties.isEmpty()) {
-                    String first = allowedProperties.get(0);
-                    String second = allowedProperties.get(allowedProperties.size() - 1);
-                    sortParam.addExample("single", new Example().summary("Single property sort").value(first + ",asc"));
-                    sortParam.addExample("multi", new Example().summary("Multi-property sort").value(List.of(first + ",asc", second + ",desc")));
-                }
 
                 operation.addParametersItem(pageParam);
                 operation.addParametersItem(sizeParam);

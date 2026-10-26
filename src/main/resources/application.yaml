@@ -52,10 +52,10 @@ app:
     refresh-limit: 10
     refresh-limit-window: 60
   otp:
-    pending-expiration: 300      # 5 minutes (single source of truth for OTP expiry)
-    verified-expiration: 300
+    pending-expiration: 50       # 50 seconds (single source of truth for OTP expiry)
+    verified-expiration: 50
     max-requests: 5              # max wrong OTP attempts before code is invalidated
-    limit-window: 60             # resend rate-limit window in seconds
+    limit-window: 50             # resend rate-limit window in seconds
 
 server:
   port: ${SERVER_PORT:8080}

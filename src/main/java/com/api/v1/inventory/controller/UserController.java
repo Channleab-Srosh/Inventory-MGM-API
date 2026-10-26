@@ -20,6 +20,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.api.v1.inventory.common.pagination.PaginationValidator;
+import com.api.v1.inventory.common.util.IdListParser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,7 +31,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Tag(name = "User Management")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 public class UserController {
 
     public static final List<String> ALLOWED_SORT_PROPERTIES = List.of(
@@ -79,9 +82,26 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(response, "User status updated successfully"));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
-        appUserService.deleteUser(id);
-        return ResponseEntity.ok(ApiResponse.ok(null, "User deleted successfully"));
+    @DeleteMapping("/{ids}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Delete single or multiple users by ID",
+            description = "Deletes a single user or multiple users given as comma-separated IDs (e.g. '1' or '1,2,3'). Max 100 IDs. Atomic operation."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User/Users deleted successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid IDs format, non-numeric, negative, zero, empty, or exceeds 100 IDs"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - requires ADMIN role"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "One or more user IDs not found"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Cannot delete own account or user with stock transaction history")
+    })
+    public ResponseEntity<ApiResponse<Void>> deleteUsers(
+            @Parameter(description = "Single ID or comma-separated IDs", example = "1,2,3")
+            @PathVariable String ids) {
+        List<Long> idList = IdListParser.parse(ids);
+        appUserService.deleteUsers(idList);
+        String message = idList.size() > 1 ? "Users deleted successfully" : "User deleted successfully";
+        return ResponseEntity.ok(ApiResponse.ok(null, message));
     }
 }

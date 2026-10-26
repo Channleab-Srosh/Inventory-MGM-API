@@ -68,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
      */
     private final Cache<String, RegistrationOtpEntry> registrationOtpCache =
             Caffeine.newBuilder()
-                    .expireAfterWrite(Duration.ofMinutes(AppProperty.OTP_EXPIRY_MINUTES))
+                    .expireAfterWrite(Duration.ofSeconds(AppProperty.OTP_EXPIRY_SECONDS))
                     .maximumSize(10_000)
                     .build();
 
@@ -115,7 +115,7 @@ public class AuthServiceImpl implements AuthService {
         // ---- Resend rate-limit: at most 1 request per limitWindow seconds ----
         int limitWindowSeconds = appProperty.getOtp().getLimitWindow() > 0
                 ? appProperty.getOtp().getLimitWindow()
-                : 60;
+                : AppProperty.OTP_EXPIRY_SECONDS;
 
         RegistrationOtpEntry existing = registrationOtpCache.getIfPresent(email);
         if (existing != null) {
@@ -130,7 +130,7 @@ public class AuthServiceImpl implements AuthService {
         // ---- Generate a cryptographically secure 6-digit OTP ----
         String rawOtp = String.format("%06d", secureRandom.nextInt(1_000_000));
 
-        // ---- Store directly in Caffeine cache (in-memory, auto-expiring in 5 minutes) ----
+        // ---- Store directly in Caffeine cache (in-memory, auto-expiring in 50 seconds) ----
         registrationOtpCache.put(email, new RegistrationOtpEntry(rawOtp));
 
         // Pass the email as the display name since we don't know the full name yet
@@ -254,7 +254,7 @@ public class AuthServiceImpl implements AuthService {
 
         int pendingExpirationSeconds = appProperty.getOtp().getPendingExpiration() > 0
                 ? appProperty.getOtp().getPendingExpiration()
-                : 300;
+                : AppProperty.OTP_EXPIRY_SECONDS;
 
         AppUserToken tokenEntity = AppUserToken.builder()
                 .user(user)
