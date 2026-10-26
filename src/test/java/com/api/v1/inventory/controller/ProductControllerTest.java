@@ -924,6 +924,27 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/products - Create product with DOZEN unitOfMeasure")
+    void testCreateProductWithDozenUom() throws Exception {
+        CreateProductRequest request = CreateProductRequest.builder()
+                .sku("SKU-UOM-DOZEN-" + System.currentTimeMillis())
+                .name("Dozen Eggs")
+                .categoryId(sampleCategory.getId())
+                .unitOfMeasure(com.api.v1.inventory.model.enumerate.UnitOfMeasure.DOZEN)
+                .unitPrice(new BigDecimal("15.00"))
+                .minimumStock(5)
+                .build();
+
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.unitOfMeasure", is("DOZEN")));
+    }
+
+    @Test
     @DisplayName("POST /api/v1/products - Create product with omitted UOM defaults to PCS")
     void testCreateProductWithDefaultUom() throws Exception {
         long ts = System.currentTimeMillis();
@@ -1023,7 +1044,7 @@ class ProductControllerTest {
                         .content(json))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.message", is("Invalid unitOfMeasure 'ABC'. Allowed: [PCS, BOX, PACK, BOTTLE, CAN, KG, LITER]")))
+                .andExpect(jsonPath("$.message", is("Invalid unitOfMeasure 'ABC'. Allowed: [PCS, BOX, PACK, BOTTLE, CAN, KG, LITER, DOZEN, CASE, CARTON, BUNDLE, BALE, SACK, BAG, PALLET, ROLL, SET, PAIR, TRAY]")))
                 .andReturn();
         System.out.println("RESPONSE (unitOfMeasure 'ABC'): " + result.getResponse().getContentAsString());
     }
@@ -1048,7 +1069,7 @@ class ProductControllerTest {
                         .content(json))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.message", is("Invalid unitOfMeasure 'pcs'. Allowed: [PCS, BOX, PACK, BOTTLE, CAN, KG, LITER]")))
+                .andExpect(jsonPath("$.message", is("Invalid unitOfMeasure 'pcs'. Allowed: [PCS, BOX, PACK, BOTTLE, CAN, KG, LITER, DOZEN, CASE, CARTON, BUNDLE, BALE, SACK, BAG, PALLET, ROLL, SET, PAIR, TRAY]")))
                 .andReturn();
         System.out.println("RESPONSE (unitOfMeasure 'pcs'): " + result.getResponse().getContentAsString());
     }

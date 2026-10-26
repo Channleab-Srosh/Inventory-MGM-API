@@ -7,5 +7,18 @@ public enum UnitOfMeasure {
     BOTTLE,
     CAN,
     KG,
-    LITER
+    LITER,
+    DOZEN,
+    CASE,
+    CARTON,
+    BUNDLE,
+    BALE,
+    SACK,
+    BAG,
+    PALLET,
+    ROLL,
+    SET,
+    PAIR,
+    TRAY
 }
+
