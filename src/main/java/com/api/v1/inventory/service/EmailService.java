@@ -4,6 +4,8 @@ public interface EmailService {
 
     void sendPasswordResetEmail(String toEmail, String otpOrToken);
 
+    void sendPasswordResetEmail(String toEmail, String recipientName, String otpOrToken);
+
     /**
      * Sends the registration OTP email.
      *

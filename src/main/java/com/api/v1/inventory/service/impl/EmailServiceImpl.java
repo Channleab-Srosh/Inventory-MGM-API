@@ -34,46 +34,29 @@ public class EmailServiceImpl implements EmailService {
     private String mailFrom;
 
     // -------------------------------------------------------------------------
-    // Password-reset email (unchanged behaviour, plain-text)
+    // Password-reset email – HTML + plain-text multipart (matching Register OTP form)
     // -------------------------------------------------------------------------
 
     @Async
     @Override
     public void sendPasswordResetEmail(String toEmail, String otpOrToken) {
+        sendPasswordResetEmail(toEmail, toEmail, otpOrToken);
+    }
+
+    @Async
+    @Override
+    public void sendPasswordResetEmail(String toEmail, String recipientName, String otpOrToken) {
         log.info("Dispatching password reset notification for [{}]", toEmail);
-
-        int expirationSeconds = appProperty.getOtp().getPendingExpiration() > 0
-                ? appProperty.getOtp().getPendingExpiration()
-                : AppProperty.OTP_EXPIRY_SECONDS;
-
-        String expirationText;
-        if (expirationSeconds >= 60 && expirationSeconds % 60 == 0) {
-            expirationText = (expirationSeconds / 60) + " minutes";
-        } else {
-            expirationText = expirationSeconds + " seconds";
-        }
-
-        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
-        if (mailSender != null && mailFrom != null && !mailFrom.trim().isEmpty()) {
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(mailFrom);
-                message.setTo(toEmail);
-                message.setSubject("Password Reset Request - " + SENDER_NAME);
-                message.setText("Hello,\n\n"
-                        + "You requested a password reset for your account.\n"
-                        + "Your password reset code is: " + otpOrToken + "\n\n"
-                        + "This code will expire in " + expirationText + ".\n"
-                        + "If you did not make this request, please ignore this email.");
-
-                mailSender.send(message);
-                log.info("Password reset email sent successfully to {}", toEmail);
-            } catch (Exception e) {
-                log.warn("Could not dispatch email via SMTP: {}", e.getMessage());
-            }
-        } else {
-            log.info("SMTP mail sender not fully configured; skipping email dispatch.");
-        }
+        sendOtpEmail(
+                toEmail,
+                recipientName,
+                otpOrToken,
+                "Reset Password OTP",
+                "You requested a password reset for your account. Use the verification code below to reset your password:",
+                "If you did not request a password reset, please ignore this email. No action is required.",
+                otpOrToken + " is your reset password OTP",
+                "Password reset OTP"
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -84,7 +67,26 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendRegistrationOtpEmail(String toEmail, String recipientName, String rawOtp) {
         log.info("Dispatching registration OTP notification for [{}]", toEmail);
+        sendOtpEmail(
+                toEmail,
+                recipientName,
+                rawOtp,
+                "Register OTP",
+                "Thank you for registering. Use the verification code below to complete your account setup:",
+                "If you did not create an account with Inventory Management System, please ignore this email. No action is required.",
+                rawOtp + " is your register OTP",
+                "Registration OTP"
+        );
+    }
 
+    private void sendOtpEmail(String toEmail,
+                              String recipientName,
+                              String rawOtp,
+                              String title,
+                              String messageText,
+                              String warningText,
+                              String subject,
+                              String operationLabel) {
         int expirationSeconds = appProperty.getOtp().getPendingExpiration() > 0
                 ? appProperty.getOtp().getPendingExpiration()
                 : AppProperty.OTP_EXPIRY_SECONDS;
@@ -98,30 +100,31 @@ public class EmailServiceImpl implements EmailService {
 
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null || mailFrom == null || mailFrom.trim().isEmpty()) {
-            log.info("SMTP mail sender not fully configured; skipping registration OTP email dispatch.");
+            log.info("SMTP mail sender not fully configured; skipping {} email dispatch.", operationLabel);
             return;
         }
 
         try {
             // ---- Build HTML body from template ----
             String htmlBody = loadOtpEmailTemplate()
+                    .replace("{{TITLE}}", escapeHtml(title))
                     .replace("{{NAME}}", escapeHtml(recipientName))
+                    .replace("{{MESSAGE}}", escapeHtml(messageText))
                     .replace("{{OTP_CODE}}", escapeHtml(rawOtp))
                     .replace("{{EXPIRY_TIME}}", escapeHtml(expirationText))
                     .replace("{{EXPIRY_MINUTES}} minutes", escapeHtml(expirationText))
                     .replace("{{EXPIRY_MINUTES}}", escapeHtml(expirationText))
+                    .replace("{{WARNING}}", escapeHtml(warningText))
                     .replace("{{YEAR}}", String.valueOf(Year.now().getValue()));
 
             // ---- Plain-text fallback ----
             String plainText = "Hello, " + recipientName + "\n\n"
+                    + messageText + "\n\n"
                     + "Your Inventory Management System verification code is: " + rawOtp + "\n\n"
                     + "This code expires in " + expirationText + ".\n"
                     + "Do not share it with anyone.\n\n"
-                    + "If you did not create an account, please ignore this email.\n\n"
+                    + warningText + "\n\n"
                     + "— " + SENDER_NAME;
-
-            // ---- Subject: «OTP_CODE» is your verification code ----
-            String subject = rawOtp + " is your verification code";
 
             // ---- Compose MimeMessage (multipart/alternative) ----
             MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -132,10 +135,10 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(plainText, htmlBody);   // (text, html)
 
             mailSender.send(mimeMessage);
-            log.info("Registration OTP email sent successfully to {}", toEmail);
+            log.info("{} email sent successfully to {}", operationLabel, toEmail);
 
         } catch (MessagingException | UnsupportedEncodingException e) {
-            log.warn("Could not dispatch registration OTP email via SMTP: {}", e.getMessage());
+            log.warn("Could not dispatch {} email via SMTP: {}", operationLabel, e.getMessage());
         }
     }
 
@@ -158,9 +161,12 @@ public class EmailServiceImpl implements EmailService {
         }
         // Minimal inline fallback
         return "<html><body>"
+                + "<h2>{{TITLE}}</h2>"
                 + "<p>Hello, {{NAME}}</p>"
+                + "<p>{{MESSAGE}}</p>"
                 + "<p>Your verification code is: <strong>{{OTP_CODE}}</strong></p>"
                 + "<p>It expires in {{EXPIRY_TIME}}.</p>"
+                + "<p>{{WARNING}}</p>"
                 + "<p>&copy; {{YEAR}} Inventory Management System</p>"
                 + "</body></html>";
     }

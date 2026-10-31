@@ -14,6 +14,6 @@ import lombok.NoArgsConstructor;
 public class UpdateProductStatusRequest {
 
     @NotNull(message = "Active status is required")
-    @Schema(description = "Active status of the product", example = "false")
+    @Schema(description = "Active status of the product")
     private Boolean active;
 }

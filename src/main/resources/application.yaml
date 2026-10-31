@@ -43,8 +43,16 @@ spring:
           auth: true
           starttls:
             enable: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 app:
+  upload:
+    dir: ${UPLOAD_DIR:./uploads/images}
+    base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads/images}
   jwt:
     access-expiration: ${JWT_ACCESS_EXPIRATION:900000}       # 15 minutes
     refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}   # 7 days
@@ -59,4 +67,4 @@ app:
 
 server:
   port: ${SERVER_PORT:8080}
-  address: 192.168.219.68
+  address: ${SERVER_ADDRESS:0.0.0.0}

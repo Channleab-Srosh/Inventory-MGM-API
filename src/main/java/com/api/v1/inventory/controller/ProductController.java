@@ -15,9 +15,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.api.v1.inventory.common.pagination.PaginationValidator;
 import com.api.v1.inventory.common.util.IdListParser;
@@ -125,5 +128,20 @@ public class ProductController {
     ) {
         ProductResponse response = productService.updateProductStatus(id, request);
         return ResponseEntity.ok(ApiResponse.ok(response, "Product status updated successfully"));
+    }
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(
+            summary = "Upload product image",
+            description = "Uploads an image file (JPEG, PNG, GIF, or WEBP; max 5 MB) for the given product. " +
+                    "Replaces any previously uploaded image. The response contains the updated product with the new imageUrl."
+    )
+    public ResponseEntity<ApiResponse<ProductResponse>> uploadProductImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        ProductResponse response = productService.uploadProductImage(id, file);
+        return ResponseEntity.ok(ApiResponse.ok(response, "Product image uploaded successfully"));
     }
 }

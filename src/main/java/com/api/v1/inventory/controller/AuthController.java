@@ -56,7 +56,7 @@ public class AuthController {
         authService.forgotPassword(request);
         return ResponseEntity.ok(ApiResponse.ok(
                 null,
-                "If an account with that email exists and is eligible, password reset instructions have been sent."
+                "Password reset instructions have been sent to " + request.getEmail().trim() + "."
         ));
     }
 

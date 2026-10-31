@@ -221,6 +221,48 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/auth/forgot-password - Fails when email is not registered")
+    void testForgotPasswordNonexistentEmail() throws Exception {
+        com.api.v1.inventory.model.request.ForgotPasswordRequest request =
+                com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
+                        .email("nonexistent_email_9999@test.com")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("No account found with email 'nonexistent_email_9999@test.com'")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/forgot-password - Fails when account is disabled")
+    void testForgotPasswordDisabledAccount() throws Exception {
+        var disabledUser = appUserRepository.findByUsernameIgnoreCase("bopha.heng")
+                .orElseGet(() -> appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
+                        .username("disabled_test_user")
+                        .email("disabled_test_user@test.com")
+                        .password("hashedPass")
+                        .fullName("Disabled User")
+                        .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
+                        .active(false)
+                        .build()));
+
+        com.api.v1.inventory.model.request.ForgotPasswordRequest request =
+                com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
+                        .email(disabledUser.getEmail())
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("is disabled. Please contact administrator")));
+    }
+
+    @Test
     @DisplayName("POST /api/v1/auth/reset-password - Success resets password and allows login")
     void testResetPasswordStaffSuccess() throws Exception {
         var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();

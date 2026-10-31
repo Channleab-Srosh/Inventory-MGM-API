@@ -16,15 +16,15 @@ import lombok.NoArgsConstructor;
 public class StockOperationRequest {
 
     @NotNull(message = "Product ID is required")
-    @Schema(description = "ID of the target product", example = "1")
+    @Schema(description = "ID of the target product")
     private Long productId;
 
     @NotNull(message = "Quantity is required")
     @Min(value = 1, message = "Quantity must be greater than zero")
-    @Schema(description = "Quantity of items to add or deduct", example = "25")
+    @Schema(description = "Quantity of items to add or deduct")
     private Integer quantity;
 
     @Size(max = 255, message = "Note cannot exceed 255 characters")
-    @Schema(description = "Optional transaction note or reference details", example = "Restocked from monthly supplier shipment #PO-2026-10")
+    @Schema(description = "Optional transaction note or reference details")
     private String note;
 }

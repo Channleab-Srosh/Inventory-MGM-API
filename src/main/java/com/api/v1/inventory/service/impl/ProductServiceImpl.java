@@ -14,6 +14,7 @@ import com.api.v1.inventory.repository.CategoryRepository;
 import com.api.v1.inventory.repository.ProductRepository;
 import com.api.v1.inventory.repository.StockTransactionRepository;
 import com.api.v1.inventory.repository.SupplierRepository;
+import com.api.v1.inventory.service.FileStorageService;
 import com.api.v1.inventory.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Set;
@@ -35,6 +38,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final SupplierRepository supplierRepository;
     private final StockTransactionRepository stockTransactionRepository;
+    private final FileStorageService fileStorageService;
 
     @Override
     @Transactional
@@ -61,6 +65,7 @@ public class ProductServiceImpl implements ProductService {
                 .sku(trimmedSku)
                 .name(request.getName().trim())
                 .description(request.getDescription() != null ? request.getDescription().trim() : null)
+                .imageUrl(request.getImageUrl() != null ? request.getImageUrl().trim() : null)
                 .category(category)
                 .supplier(supplier)
                 .unitOfMeasure(uom)
@@ -144,6 +149,7 @@ public class ProductServiceImpl implements ProductService {
         product.setSku(trimmedSku);
         product.setName(request.getName().trim());
         product.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
+        product.setImageUrl(request.getImageUrl() != null ? request.getImageUrl().trim() : null);
         product.setUnitPrice(request.getUnitPrice());
         product.setMinimumStock(request.getMinimumStock());
         product.setActive(request.getActive());
@@ -226,6 +232,25 @@ public class ProductServiceImpl implements ProductService {
         // NOTE: stockQuantity and all other product fields are preserved untouched
         Product updated = productRepository.save(product);
         log.info("Product status updated successfully: id={}, active={}", updated.getId(), updated.isActive());
+        return ProductResponse.fromEntity(updated);
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse uploadProductImage(Long id, MultipartFile file) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        // Delete the old image if it was previously uploaded through this service
+        if (product.getImageUrl() != null) {
+            fileStorageService.deleteByUrl(product.getImageUrl());
+        }
+
+        String newImageUrl = fileStorageService.storeProductImage(file);
+        product.setImageUrl(newImageUrl);
+
+        Product updated = productRepository.save(product);
+        log.info("Product image uploaded successfully: id={}, imageUrl={}", updated.getId(), updated.getImageUrl());
         return ProductResponse.fromEntity(updated);
     }
 }

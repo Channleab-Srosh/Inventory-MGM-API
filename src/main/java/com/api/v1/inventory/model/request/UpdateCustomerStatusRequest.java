@@ -11,6 +11,6 @@ import lombok.*;
 public class UpdateCustomerStatusRequest {
 
     @NotNull(message = "Active status is required")
-    @Schema(description = "Customer active status", example = "true")
+    @Schema(description = "Customer active status")
     private Boolean active;
 }

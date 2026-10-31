@@ -16,6 +16,7 @@ public class AppProperty {
 
     private Jwt jwt = new Jwt();
     private Otp otp = new Otp();
+    private Upload upload = new Upload();
 
     @Data
     public static class Jwt {
@@ -36,5 +37,13 @@ public class AppProperty {
         private int maxRequests;
         /** Resend rate-limit window in seconds (e.g. 60 = max 1 resend per minute). */
         private int limitWindow;
+    }
+
+    @Data
+    public static class Upload {
+        /** Local directory where uploaded product images are stored. */
+        private String dir = "./uploads/images";
+        /** Public base URL used to build the accessible image URL returned to clients. */
+        private String baseUrl = "http://localhost:8080/uploads/images";
     }
 }

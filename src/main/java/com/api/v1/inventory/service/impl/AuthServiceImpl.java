@@ -227,14 +227,11 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
         String email = request.getEmail().trim().toLowerCase();
-        Optional<AppUser> userOpt = userRepository.findByEmailIgnoreCase(email);
-
-        if (userOpt.isEmpty()) {
-            log.info("Password reset requested for non-existing email: {}", email);
-            return;
-        }
-
-        AppUser user = userOpt.get();
+        AppUser user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> {
+                    log.info("Password reset requested for non-existing email: {}", email);
+                    return new BadRequestException("No account found with email '" + request.getEmail().trim() + "'.");
+                });
 
         if (user.getRole() == Role.ADMIN) {
             log.warn("Password reset requested for ADMIN account ({}). Admin self-service reset is not allowed.", user.getUsername());
@@ -243,7 +240,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (!user.isActive()) {
             log.warn("Password reset requested for disabled account: {}", user.getUsername());
-            return;
+            throw new BadRequestException("Account associated with email '" + request.getEmail().trim() + "' is disabled. Please contact administrator.");
         }
 
         // Generate 6-digit numeric OTP
@@ -265,7 +262,10 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         userTokenRepository.save(tokenEntity);
 
-        emailService.sendPasswordResetEmail(user.getEmail(), otp);
+        String recipientName = user.getFullName() != null && !user.getFullName().trim().isEmpty()
+                ? user.getFullName().trim()
+                : user.getUsername();
+        emailService.sendPasswordResetEmail(user.getEmail(), recipientName, otp);
         log.info("Issued password reset OTP for user: id={}, email={}", user.getId(), user.getEmail());
     }
 

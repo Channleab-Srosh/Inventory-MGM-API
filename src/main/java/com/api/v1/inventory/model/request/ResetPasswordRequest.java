@@ -18,16 +18,16 @@ public class ResetPasswordRequest {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
-    @Schema(description = "Email of the account requesting password reset", example = "staff.inventory@gmail.com")
+    @Schema(description = "Email of the account requesting password reset")
     private String email;
 
     @NotBlank(message = "OTP code is required")
-    @Schema(description = "6-digit OTP code received via email", example = "569237")
+    @Schema(description = "6-digit OTP code received via email")
     @JsonAlias({"token"})
     private String otp;
 
     @NotBlank(message = "New password is required")
     @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
-    @Schema(description = "New password for account", example = "NewPassword@123")
+    @Schema(description = "New password for account")
     private String newPassword;
 }

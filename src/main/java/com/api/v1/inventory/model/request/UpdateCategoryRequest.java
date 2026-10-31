@@ -16,10 +16,10 @@ public class UpdateCategoryRequest {
 
     @NotBlank(message = "Category name is required")
     @Size(max = 100, message = "Category name must not exceed 100 characters")
-    @Schema(description = "Updated category name", example = "Electronics & Accessories")
+    @Schema(description = "Updated category name")
     private String name;
 
     @Size(max = 255, message = "Description must not exceed 255 characters")
-    @Schema(description = "Updated category description", example = "Updated electronic devices, computer hardware, and accessories")
+    @Schema(description = "Updated category description")
     private String description;
 }

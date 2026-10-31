@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Email Verification Code</title>
+  <title>{{TITLE}}</title>
   <style>
     body {
       margin: 0; padding: 0;
@@ -24,7 +24,7 @@
     }
     .header {
       background-color: #1a73e8;
-      padding: 28px 32px;
+      padding: 24px 32px;
       text-align: center;
     }
     .header h1 {
@@ -32,6 +32,14 @@
       color: #ffffff;
       font-size: 22px;
       letter-spacing: 0.5px;
+    }
+    .header .subtitle {
+      color: #e8f0fe;
+      font-size: 14px;
+      margin-top: 6px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
     }
     .body {
       padding: 32px;
@@ -89,14 +97,14 @@
       <!-- Header -->
       <div class="header">
         <h1>Inventory Management System</h1>
+        <div class="subtitle">{{TITLE}}</div>
       </div>
 
       <!-- Body -->
       <div class="body">
         <p>Hello, <strong>{{NAME}}</strong></p>
         <p>
-          Thank you for registering. Use the verification code below to complete
-          your account setup:
+          {{MESSAGE}}
         </p>
 
         <div class="otp-box">
@@ -111,8 +119,7 @@
         <hr class="divider" />
 
         <p class="warning">
-          If you did not create an account with Inventory Management System,
-          please ignore this email. No action is required.
+          {{WARNING}}
         </p>
       </div>
 
