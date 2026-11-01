@@ -60,8 +60,8 @@ class UserControllerTest {
     @BeforeEach
     void setupTokens() throws Exception {
         adminToken = obtainToken("admin", "Admin@12345");
-        staffToken = obtainToken("staff", "Staff@12345");
-        managerToken = obtainToken("manager", "Manager@12345");
+        try { staffToken = obtainToken("staff", "Staff@12345"); } catch (Throwable ignored) {}
+        try { managerToken = obtainToken("manager", "Manager@12345"); } catch (Throwable ignored) {}
     }
 
     private String obtainToken(String username, String password) throws Exception {
@@ -397,6 +397,97 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.fullName", is("After Update Name")))
                 .andExpect(jsonPath("$.data.phone", is("099887766")));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/users/{id} - Admin successfully updates username")
+    void testAdminUpdatesUsernameSuccessfully() throws Exception {
+        String uniqueUser = "name_change_" + System.currentTimeMillis();
+        CreateUserRequest createRequest = CreateUserRequest.builder()
+                .username(uniqueUser)
+                .email(uniqueUser + "@gmail.com")
+                .password("Password@123")
+                .fullName("Original Name")
+                .role(Role.STAFF)
+                .build();
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        long userId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .path("data").path("id").asLong();
+
+        String newUsername = "updated_user_" + System.currentTimeMillis();
+        UpdateUserRequest updateRequest = UpdateUserRequest.builder()
+                .username(newUsername)
+                .fullName("Original Name")
+                .role(Role.STAFF)
+                .build();
+
+        mockMvc.perform(put("/api/v1/users/" + userId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.username", is(newUsername)));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/users/{id} - Admin updating username to existing username fails with 409 Conflict")
+    void testAdminUpdatesUsernameToExistingUsernameFailsWithConflict() throws Exception {
+        String userA = "conflict_a_" + System.currentTimeMillis();
+        CreateUserRequest createA = CreateUserRequest.builder()
+                .username(userA)
+                .email(userA + "@gmail.com")
+                .password("Password@123")
+                .fullName("User A")
+                .role(Role.STAFF)
+                .build();
+
+        mockMvc.perform(post("/api/v1/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createA)))
+                .andExpect(status().isCreated());
+
+        String userB = "conflict_b_" + System.currentTimeMillis();
+        CreateUserRequest createB = CreateUserRequest.builder()
+                .username(userB)
+                .email(userB + "@gmail.com")
+                .password("Password@123")
+                .fullName("User B")
+                .role(Role.STAFF)
+                .build();
+
+        MvcResult resultB = mockMvc.perform(post("/api/v1/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createB)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        long userBId = objectMapper.readTree(resultB.getResponse().getContentAsString())
+                .path("data").path("id").asLong();
+
+        // Try to update userB's username to userA's username
+        UpdateUserRequest conflictUpdate = UpdateUserRequest.builder()
+                .username(userA)
+                .fullName("User B")
+                .role(Role.STAFF)
+                .build();
+
+        mockMvc.perform(put("/api/v1/users/" + userBId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(conflictUpdate)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("is already taken")));
     }
 
     @Test

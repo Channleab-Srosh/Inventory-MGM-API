@@ -24,10 +24,10 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024L; // 5 MB
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp"
+            "image/jpeg", "image/png", "image/gif", "image/webp", "image/pjpeg", "image/jfif"
     );
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
-            ".jpg", ".jpeg", ".png", ".gif", ".webp"
+            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".jfif"
     );
 
     private final AppProperty appProperty;
@@ -59,7 +59,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
             throw new BadRequestException(
-                    "Unsupported image type '" + contentType + "'. Allowed: JPEG, PNG, GIF, WEBP");
+                    "Unsupported image type '" + contentType + "'. Allowed: JPEG, PNG, GIF, WEBP, JFIF");
         }
 
         // Extract and validate extension from original filename
@@ -67,7 +67,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         String extension = extractExtension(originalFilename);
         if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
             throw new BadRequestException(
-                    "Unsupported file extension '" + extension + "'. Allowed: .jpg, .jpeg, .png, .gif, .webp");
+                    "Unsupported file extension '" + extension + "'. Allowed: .jpg, .jpeg, .png, .gif, .webp, .jfif");
         }
 
         // Generate a unique filename to avoid collisions and path traversal

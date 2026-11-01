@@ -140,7 +140,7 @@ public class ProductController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(
             summary = "Upload product image",
-            description = "Uploads an image file (JPEG, PNG, GIF, or WEBP; max 5 MB) for the given product. " +
+            description = "Uploads an image file (JPEG, PNG, GIF, WEBP, or JFIF; max 5 MB) for the given product. " +
                     "Replaces any previously uploaded image. The response contains the updated product with the new imageUrl."
     )
     public ResponseEntity<ApiResponse<ProductResponse>> uploadProductImage(

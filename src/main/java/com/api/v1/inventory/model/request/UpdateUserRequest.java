@@ -18,6 +18,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UpdateUserRequest {
 
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Schema(description = "Updated username for authentication (leave empty to keep unchanged)")
+    private String username;
+
     @Email(message = "Email must be a valid email format")
     @Pattern(regexp = "^$|^[a-zA-Z0-9._%+\\-]+@gmail\\.com$", message = "Only Gmail addresses (@gmail.com) are allowed")
     @Size(max = 100, message = "Email cannot exceed 100 characters")

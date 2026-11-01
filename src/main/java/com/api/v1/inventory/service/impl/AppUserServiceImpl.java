@@ -151,6 +151,19 @@ public class AppUserServiceImpl implements AppUserService {
                 throw new BadRequestException("Cannot update user role to ADMIN. Maximum limit of " + MAX_ADMIN_ACCOUNTS + " administrator accounts has been reached.");
             }
         }
+        if (request.getUsername() != null && !request.getUsername().trim().isEmpty()) {
+            String newUsername = request.getUsername().trim();
+            if (!newUsername.equalsIgnoreCase(user.getUsername())) {
+                String normalizedUsername = newUsername.toLowerCase();
+                userRepository.findByUsernameIgnoreCase(normalizedUsername).ifPresent(existing -> {
+                    if (!existing.getId().equals(user.getId())) {
+                        throw new ConflictException("Username '" + newUsername + "' is already taken");
+                    }
+                });
+                user.setUsername(newUsername);
+            }
+        }
+
         if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
             String normalizedEmail = request.getEmail().trim().toLowerCase();
             userRepository.findByEmailIgnoreCase(normalizedEmail).ifPresent(existing -> {
