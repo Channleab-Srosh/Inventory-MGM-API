@@ -8,6 +8,7 @@ import com.api.v1.inventory.model.enumerate.ReportPeriod;
 import com.api.v1.inventory.model.enumerate.StockStatusFilter;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import com.api.v1.inventory.model.response.ExportedFile;
+import com.api.v1.inventory.model.response.InventoryReportPageResponse;
 import com.api.v1.inventory.model.response.InventoryReportResponse;
 import com.api.v1.inventory.model.response.InventorySummaryReportResponse;
 import com.api.v1.inventory.model.response.StockTransactionResponse;
@@ -81,8 +82,8 @@ public class ReportController {
 
     @GetMapping("/inventory")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    @Operation(summary = "Get inventory status report", description = "Query current inventory levels with filters for out-of-stock, low-stock, category, supplier, and date period.")
-    public ResponseEntity<ApiResponse<PageResponse<InventoryReportResponse>>> getInventoryReport(
+    @Operation(summary = "Get inventory status report", description = "Query current inventory levels with totals (total products, total units, total valuation, in-stock/low-stock/out-of-stock counts) and filters for out-of-stock, low-stock, category, supplier, and date period.")
+    public ResponseEntity<ApiResponse<InventoryReportPageResponse>> getInventoryReport(
             @Parameter(description = "Filter by product name or SKU (case-insensitive substring)")
             @RequestParam(required = false) String keyword,
             @Parameter(description = "Filter inventory by category ID")
@@ -106,7 +107,7 @@ public class ReportController {
             @ParameterObject @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_INVENTORY_REPORT_SORT_PROPERTIES, "id");
-        PageResponse<InventoryReportResponse> response = reportService.getInventoryReport(
+        InventoryReportPageResponse response = reportService.getInventoryReport(
                 keyword, categoryId, supplierId, active, stockStatus, lowStockOnly, period, fromDate, toDate, zoneId, validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Inventory report retrieved successfully"));

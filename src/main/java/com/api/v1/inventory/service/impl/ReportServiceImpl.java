@@ -9,6 +9,7 @@ import com.api.v1.inventory.model.enumerate.ReportPeriod;
 import com.api.v1.inventory.model.enumerate.StockStatusFilter;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import com.api.v1.inventory.model.response.ExportedFile;
+import com.api.v1.inventory.model.response.InventoryReportPageResponse;
 import com.api.v1.inventory.model.response.InventoryReportResponse;
 import com.api.v1.inventory.model.response.InventorySummaryReportResponse;
 import com.api.v1.inventory.model.response.StockTransactionResponse;
@@ -72,7 +73,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public PageResponse<InventoryReportResponse> getInventoryReport(
+    public InventoryReportPageResponse getInventoryReport(
             String keyword,
             Long categoryId,
             Long supplierId,
@@ -108,7 +109,60 @@ public class ReportServiceImpl implements ReportService {
                 pageable
         );
 
-        return PageResponse.from(page.map(InventoryReportResponse::fromEntity));
+        List<Product> allProducts = productRepository.findInventoryReportList(
+                searchKeyword,
+                categoryId,
+                supplierId,
+                active,
+                statusStr,
+                lowStockOnly,
+                range.getFromDate(),
+                range.getToDate()
+        );
+
+        long totalProducts = (allProducts != null) ? allProducts.size() : page.getTotalElements();
+        long totalUnits = 0L;
+        BigDecimal totalValuation = BigDecimal.ZERO;
+        long inStockCount = 0L;
+        long lowStockCount = 0L;
+        long outOfStockCount = 0L;
+
+        if (allProducts != null) {
+            for (Product p : allProducts) {
+                int qty = (p.getStockQuantity() != null) ? p.getStockQuantity() : 0;
+                int min = (p.getMinimumStock() != null) ? p.getMinimumStock() : 0;
+                BigDecimal price = (p.getUnitPrice() != null) ? p.getUnitPrice() : BigDecimal.ZERO;
+                BigDecimal itemValuation = price.multiply(BigDecimal.valueOf(qty));
+
+                totalUnits += qty;
+                totalValuation = totalValuation.add(itemValuation);
+
+                if (qty <= 0) {
+                    outOfStockCount++;
+                } else if (qty <= min) {
+                    lowStockCount++;
+                } else {
+                    inStockCount++;
+                }
+            }
+        }
+
+        Page<InventoryReportResponse> mappedPage = page.map(InventoryReportResponse::fromEntity);
+
+        return InventoryReportPageResponse.inventoryPageBuilder()
+                .content(mappedPage.getContent())
+                .pageNumber(mappedPage.getNumber())
+                .pageSize(mappedPage.getSize())
+                .totalElements(mappedPage.getTotalElements())
+                .totalPages(mappedPage.getTotalPages())
+                .last(mappedPage.isLast())
+                .totalProducts(totalProducts)
+                .totalUnits(totalUnits)
+                .totalInventoryValuation(totalValuation)
+                .inStockCount(inStockCount)
+                .lowStockCount(lowStockCount)
+                .outOfStockCount(outOfStockCount)
+                .build();
     }
 
     @Override

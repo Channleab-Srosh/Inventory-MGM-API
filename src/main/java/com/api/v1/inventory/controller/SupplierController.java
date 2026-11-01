@@ -52,7 +52,7 @@ public class SupplierController {
     public ResponseEntity<ApiResponse<PageResponse<SupplierResponse>>> getAllSuppliers(
             @Parameter(description = "Filter suppliers by name or phone (substring)")
             @RequestParam(required = false) String search,
-            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
         PageResponse<SupplierResponse> response = supplierService.getAllSuppliers(search, validatedPageable);

@@ -66,7 +66,7 @@ public class ProductController {
             @RequestParam(required = false, defaultValue = "ALL") com.api.v1.inventory.model.enumerate.StockStatusFilter stockStatus,
             @Parameter(description = "Filter only products with low stock (stockQuantity <= minimumStock)")
             @RequestParam(required = false) Boolean lowStockOnly,
-            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
         PageResponse<ProductResponse> response = productService.getProducts(
@@ -79,6 +79,12 @@ public class ProductController {
                 validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Products retrieved successfully"));
+    }
+
+    @GetMapping("/units")
+    @Operation(summary = "Get all available units of measure", description = "Returns the list of all supported units of measure.")
+    public ResponseEntity<ApiResponse<List<com.api.v1.inventory.model.enumerate.UnitOfMeasure>>> getUnitsOfMeasure() {
+        return ResponseEntity.ok(ApiResponse.ok(List.of(com.api.v1.inventory.model.enumerate.UnitOfMeasure.values()), "Units of measure retrieved successfully"));
     }
 
     @GetMapping("/{id}")

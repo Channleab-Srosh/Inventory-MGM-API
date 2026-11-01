@@ -44,4 +44,8 @@ public class UpdateUserRequest {
     @NotNull(message = "Role is required")
     @Schema(description = "Updated access role assigned to the user")
     private Role role;
+
+    @Size(max = 2048, message = "Image URL cannot exceed 2048 characters")
+    @Schema(description = "Updated profile image URL")
+    private String imageUrl;
 }

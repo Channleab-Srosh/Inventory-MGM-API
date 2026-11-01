@@ -5,6 +5,7 @@ import com.api.v1.inventory.model.enumerate.ExportFormat;
 import com.api.v1.inventory.model.enumerate.ReportPeriod;
 import com.api.v1.inventory.model.enumerate.StockStatusFilter;
 import com.api.v1.inventory.model.response.ExportedFile;
+import com.api.v1.inventory.model.response.InventoryReportPageResponse;
 import com.api.v1.inventory.model.response.InventoryReportResponse;
 import com.api.v1.inventory.model.response.InventorySummaryReportResponse;
 import com.api.v1.inventory.model.response.StockTransactionResponse;
@@ -53,15 +54,27 @@ class ReportControllerStandaloneTest {
     @DisplayName("GET /api/v1/reports/inventory with stockStatus=OUT_OF_STOCK returns 200")
     void testGetInventoryReportWithStockStatus() throws Exception {
         when(reportService.getInventoryReport(any(), any(), any(), any(), eq(StockStatusFilter.OUT_OF_STOCK), any(), any(), any(), any(), any(), any()))
-                .thenReturn(PageResponse.from(new PageImpl<>(List.of(
-                        InventoryReportResponse.builder().id(1L).sku("SKU-001").name("Test Product").build()
-                ))));
+                .thenReturn(InventoryReportPageResponse.inventoryPageBuilder()
+                        .content(List.of(
+                                InventoryReportResponse.builder().id(1L).sku("SKU-001").name("Test Product").build()
+                        ))
+                        .pageNumber(0)
+                        .pageSize(10)
+                        .totalElements(1)
+                        .totalPages(1)
+                        .last(true)
+                        .totalProducts(1)
+                        .totalUnits(10)
+                        .totalInventoryValuation(new java.math.BigDecimal("100.00"))
+                        .build());
 
         mockMvc.perform(get("/api/v1/reports/inventory")
                         .param("stockStatus", "OUT_OF_STOCK"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.content[0].sku").value("SKU-001"));
+                .andExpect(jsonPath("$.data.content[0].sku").value("SKU-001"))
+                .andExpect(jsonPath("$.data.totalProducts").value(1))
+                .andExpect(jsonPath("$.data.totalUnits").value(10));
 
         verify(reportService).getInventoryReport(any(), any(), any(), any(), eq(StockStatusFilter.OUT_OF_STOCK), any(), any(), any(), any(), any(), any());
     }

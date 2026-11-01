@@ -277,6 +277,36 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/products - Default order displays newest created product first (DESC)")
+    void testProductsDefaultOrderDisplaysNewestFirst() throws Exception {
+        long ts = System.currentTimeMillis();
+        Product first = productRepository.save(Product.builder()
+                .sku("SKU-ORD1-" + ts)
+                .name("Order Test Product 1 " + ts)
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("10.00"))
+                .stockQuantity(5)
+                .active(true)
+                .build());
+
+        Product second = productRepository.save(Product.builder()
+                .sku("SKU-ORD2-" + ts)
+                .name("Order Test Product 2 " + ts)
+                .category(sampleCategory)
+                .unitPrice(new BigDecimal("20.00"))
+                .stockQuantity(5)
+                .active(true)
+                .build());
+
+        mockMvc.perform(get("/api/v1/products")
+                        .param("keyword", "Order Test Product")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].id", is(second.getId().intValue())))
+                .andExpect(jsonPath("$.data.content[1].id", is(first.getId().intValue())));
+    }
+
+    @Test
     @DisplayName("GET /api/v1/products/{id} - Retrieve product by ID")
     void testAdminAndStaffCanGetProductById() throws Exception {
         long ts = System.currentTimeMillis();

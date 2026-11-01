@@ -46,6 +46,15 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public String storeProductImage(MultipartFile file) {
+        return storeImage(file, "product");
+    }
+
+    @Override
+    public String storeProfileImage(MultipartFile file) {
+        return storeImage(file, "profile");
+    }
+
+    private String storeImage(MultipartFile file, String imageCategory) {
         if (file == null || file.isEmpty()) {
             throw new BadRequestException("Image file must not be empty");
         }
@@ -76,7 +85,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         try {
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("Stored product image: {}", storedFilename);
+            log.info("Stored {} image: {}", imageCategory, storedFilename);
         } catch (IOException e) {
             throw new RuntimeException("Failed to store image file: " + storedFilename, e);
         }

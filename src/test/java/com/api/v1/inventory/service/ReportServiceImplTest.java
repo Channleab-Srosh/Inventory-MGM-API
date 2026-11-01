@@ -81,14 +81,20 @@ class ReportServiceImplTest {
         when(productRepository.searchInventoryReport(
                 isNull(), isNull(), isNull(), isNull(), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull(), any(Pageable.class)
         )).thenReturn(page);
+        when(productRepository.findInventoryReportList(
+                isNull(), isNull(), isNull(), isNull(), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull()
+        )).thenReturn(List.of(testProduct));
 
-        PageResponse<InventoryReportResponse> response = reportService.getInventoryReport(
+        var response = reportService.getInventoryReport(
                 null, null, null, null, StockStatusFilter.OUT_OF_STOCK, null, PageRequest.of(0, 10)
         );
 
         assertNotNull(response);
         assertEquals(1, response.getContent().size());
         assertEquals("BEV-001", response.getContent().get(0).getSku());
+        assertEquals(1, response.getTotalProducts());
+        assertEquals(0, response.getTotalUnits());
+        assertEquals(1, response.getOutOfStockCount());
         verify(productRepository).searchInventoryReport(
                 isNull(), isNull(), isNull(), isNull(), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull(), any(Pageable.class)
         );

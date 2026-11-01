@@ -16,4 +16,15 @@ public interface EmailService {
      *                      here to compose the message)
      */
     void sendRegistrationOtpEmail(String toEmail, String recipientName, String rawOtp);
+
+    /**
+     * Sends the welcome email with initial account credentials.
+     *
+     * @param toEmail       recipient email address
+     * @param recipientName display name of the user
+     * @param username      account username for login
+     * @param rawPassword   initial plain-text password
+     * @param role          assigned role name (e.g. ADMIN, MANAGER, STAFF)
+     */
+    void sendNewUserCredentialsEmail(String toEmail, String recipientName, String username, String rawPassword, String role);
 }

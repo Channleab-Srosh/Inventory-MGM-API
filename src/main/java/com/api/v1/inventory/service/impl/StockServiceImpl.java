@@ -51,6 +51,7 @@ public class StockServiceImpl implements StockService {
         productRepository.save(product);
 
         AppUser currentUser = currentUserService.getCurrentUser();
+        Instant txDate = request.getTransactionDate() != null ? request.getTransactionDate() : Instant.now();
 
         StockTransaction transaction = StockTransaction.builder()
                 .product(product)
@@ -60,6 +61,7 @@ public class StockServiceImpl implements StockService {
                 .quantityAfter(quantityAfter)
                 .note(request.getNote() != null ? request.getNote().trim() : null)
                 .createdBy(currentUser)
+                .createdAt(txDate)
                 .build();
 
         StockTransaction savedTransaction = stockTransactionRepository.save(transaction);
@@ -96,6 +98,7 @@ public class StockServiceImpl implements StockService {
         productRepository.save(product);
 
         AppUser currentUser = currentUserService.getCurrentUser();
+        Instant txDate = request.getTransactionDate() != null ? request.getTransactionDate() : Instant.now();
 
         StockTransaction transaction = StockTransaction.builder()
                 .product(product)
@@ -105,6 +108,7 @@ public class StockServiceImpl implements StockService {
                 .quantityAfter(quantityAfter)
                 .note(request.getNote() != null ? request.getNote().trim() : null)
                 .createdBy(currentUser)
+                .createdAt(txDate)
                 .build();
 
         StockTransaction savedTransaction = stockTransactionRepository.save(transaction);

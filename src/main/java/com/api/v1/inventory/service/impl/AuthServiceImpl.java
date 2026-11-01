@@ -80,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BadCredentialsException("Username does not exist"));
 
         if (!user.isActive()) {
-            throw new BadCredentialsException("Account is disabled. Please contact administrator.");
+            throw new BadCredentialsException("Your account is disabled or pending administrator approval. Please wait for an administrator to approve your account.");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -183,7 +183,7 @@ public class AuthServiceImpl implements AuthService {
         // Successfully verified -> invalidate from cache immediately to prevent replay
         registrationOtpCache.invalidate(email);
 
-        // Self-registered users set their own password: mustChangePassword is false
+        // Self-registered users set their own password; account is created inactive pending administrator approval
         AppUser user = AppUser.builder()
                 .username(username)
                 .email(email)
@@ -191,22 +191,17 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(request.getFullName().trim())
                 .phone(request.getPhone() != null && !request.getPhone().trim().isEmpty() ? request.getPhone().trim() : null)
                 .role(Role.STAFF)
-                .active(true)
+                .active(false) // Pending admin approval
                 .mustChangePassword(false)
                 .build();
 
         AppUser savedUser = userRepository.save(user);
-        log.info("Self-registered new user: id={}, username={}, role={}", savedUser.getId(), savedUser.getUsername(), savedUser.getRole());
-
-        // Auto-login: issue JWT token immediately
-        UserDetails userDetails = appUserService.loadUserByUsername(savedUser.getUsername());
-        String token = jwtService.generateToken(userDetails, savedUser.getRole().name());
-        long expiresIn = appProperty.getJwt().getAccessExpiration() / 1000;
+        log.info("Self-registered new user (pending admin approval): id={}, username={}, role={}", savedUser.getId(), savedUser.getUsername(), savedUser.getRole());
 
         return AuthResponse.builder()
-                .token(token)
-                .tokenType("Bearer")
-                .expiresIn(expiresIn)
+                .token(null)
+                .tokenType(null)
+                .expiresIn(0L)
                 .unit("seconds")
                 .username(savedUser.getUsername())
                 .role(savedUser.getRole().name())

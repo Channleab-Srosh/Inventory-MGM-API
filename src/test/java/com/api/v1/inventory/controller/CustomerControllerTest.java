@@ -241,4 +241,19 @@ class CustomerControllerTest {
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
     }
+
+    @Test
+    @DisplayName("GET /api/v1/customers - Default order displays newest created customer first (DESC)")
+    void testCustomersDefaultOrderDisplaysNewestFirst() throws Exception {
+        long ts = System.currentTimeMillis();
+        Customer c1 = customerRepository.save(Customer.builder().name("OrderCust1_" + ts).phone("091" + (ts % 1000000)).build());
+        Customer c2 = customerRepository.save(Customer.builder().name("OrderCust2_" + ts).phone("092" + (ts % 1000000)).build());
+
+        mockMvc.perform(get("/api/v1/customers")
+                        .param("search", "OrderCust")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].id", is(c2.getId().intValue())))
+                .andExpect(jsonPath("$.data.content[1].id", is(c1.getId().intValue())));
+    }
 }

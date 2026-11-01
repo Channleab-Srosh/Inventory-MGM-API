@@ -57,4 +57,13 @@ tasks.named('test') {
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
     }
+    if (file('.env').exists()) {
+        file('.env').readLines().each {
+            def line = it.trim()
+            if (!line.isEmpty() && !line.startsWith('#') && line.contains('=')) {
+                def (key, val) = line.split('=', 2)
+                environment key.trim(), val.trim()
+            }
+        }
+    }
 }

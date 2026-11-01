@@ -29,9 +29,8 @@ public class CreateUserRequest {
     @Schema(description = "User email address (Gmail only)")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, max = 100, message = "Password must be at least 6 characters")
-    @Schema(description = "Account password")
+    @Size(max = 100, message = "Password cannot exceed 100 characters")
+    @Schema(description = "Account password (optional; auto-generated if omitted)")
     private String password;
 
     @NotBlank(message = "Full name is required")
@@ -46,4 +45,8 @@ public class CreateUserRequest {
     @NotNull(message = "Role is required")
     @Schema(description = "Access role assigned to the user")
     private Role role;
+
+    @Size(max = 2048, message = "Image URL cannot exceed 2048 characters")
+    @Schema(description = "Profile image URL")
+    private String imageUrl;
 }

@@ -6,6 +6,7 @@ import com.api.v1.inventory.model.enumerate.ReportPeriod;
 import com.api.v1.inventory.model.enumerate.StockStatusFilter;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import com.api.v1.inventory.model.response.ExportedFile;
+import com.api.v1.inventory.model.response.InventoryReportPageResponse;
 import com.api.v1.inventory.model.response.InventoryReportResponse;
 import com.api.v1.inventory.model.response.InventorySummaryReportResponse;
 import com.api.v1.inventory.model.response.StockTransactionResponse;
@@ -37,7 +38,7 @@ public interface ReportService {
         return getStockTransactionReport(productId, type, userId, ReportPeriod.CUSTOM, fromDate, toDate, null, pageable);
     }
 
-    PageResponse<InventoryReportResponse> getInventoryReport(
+    InventoryReportPageResponse getInventoryReport(
             String keyword,
             Long categoryId,
             Long supplierId,
@@ -51,7 +52,7 @@ public interface ReportService {
             Pageable pageable
     );
 
-    default PageResponse<InventoryReportResponse> getInventoryReport(
+    default InventoryReportPageResponse getInventoryReport(
             String keyword,
             Long categoryId,
             Long supplierId,
@@ -63,7 +64,7 @@ public interface ReportService {
         return getInventoryReport(keyword, categoryId, supplierId, active, stockStatus, lowStockOnly, null, null, null, null, pageable);
     }
 
-    default PageResponse<InventoryReportResponse> getInventoryReport(
+    default InventoryReportPageResponse getInventoryReport(
             String keyword,
             Long categoryId,
             Long supplierId,

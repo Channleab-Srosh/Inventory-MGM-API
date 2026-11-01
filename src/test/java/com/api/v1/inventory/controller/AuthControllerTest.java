@@ -17,13 +17,18 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.mock.web.MockMultipartFile;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class AuthControllerTest {
+class
+AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -240,14 +245,18 @@ class AuthControllerTest {
     @DisplayName("POST /api/v1/auth/forgot-password - Fails when account is disabled")
     void testForgotPasswordDisabledAccount() throws Exception {
         var disabledUser = appUserRepository.findByUsernameIgnoreCase("bopha.heng")
-                .orElseGet(() -> appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
-                        .username("disabled_test_user")
-                        .email("disabled_test_user@test.com")
-                        .password("hashedPass")
-                        .fullName("Disabled User")
-                        .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
-                        .active(false)
-                        .build()));
+                .or(() -> appUserRepository.findByUsernameIgnoreCase("disabled_test_user"))
+                .orElseGet(() -> {
+                    long ts = System.currentTimeMillis();
+                    return appUserRepository.save(com.api.v1.inventory.model.entity.AppUser.builder()
+                            .username("disabled_test_user")
+                            .email("disabled_test_user_" + ts + "@test.com")
+                            .password("hashedPass")
+                            .fullName("Disabled User")
+                            .role(com.api.v1.inventory.model.enumerate.Role.STAFF)
+                            .active(false)
+                            .build());
+                });
 
         com.api.v1.inventory.model.request.ForgotPasswordRequest request =
                 com.api.v1.inventory.model.request.ForgotPasswordRequest.builder()
@@ -751,7 +760,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.message", containsString("disabled")));
+                .andExpect(jsonPath("$.message", anyOf(containsString("disabled"), containsString("approval"))));
     }
 
     @Test
@@ -855,25 +864,41 @@ class AuthControllerTest {
                 .otp(generatedOtp)
                 .build();
 
-        MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data.token", notNullValue()))
                 .andExpect(jsonPath("$.data.username", is(username)))
                 .andExpect(jsonPath("$.data.role", is("STAFF")))
-                .andExpect(jsonPath("$.data.mustChangePassword", is(false)))
-                .andReturn();
+                .andExpect(jsonPath("$.data.mustChangePassword", is(false)));
 
-        // 3. Verify returned JWT token immediately works on protected endpoints
-        String jwtToken = objectMapper.readTree(registerResult.getResponse().getContentAsString())
-                .path("data").path("token").asText();
+        // 3. User is inactive in database pending approval
+        var saved = appUserRepository.findByUsernameIgnoreCase(username).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertFalse(saved.isActive(), "Registered user must be inactive until admin approves");
 
-        mockMvc.perform(get("/api/v1/auth/me")
-                        .header("Authorization", "Bearer " + jwtToken))
+        // 4. Attempting to log in before approval fails
+        var loginReq = com.api.v1.inventory.model.request.LoginRequest.builder()
+                .username(username)
+                .password("Password@123")
+                .build();
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginReq)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message", containsString("pending administrator approval")));
+
+        // 5. Admin approves user
+        saved.setActive(true);
+        appUserRepository.save(saved);
+
+        // 6. User can now log in successfully
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginReq)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.username", is(username)));
+                .andExpect(jsonPath("$.data.username", is(username)))
+                .andExpect(jsonPath("$.data.token", notNullValue()));
     }
 
     @Test
@@ -981,5 +1006,79 @@ class AuthControllerTest {
         long diffSeconds = java.time.Duration.between(java.time.Instant.now(), token.getExpiresAt()).getSeconds();
         org.junit.jupiter.api.Assertions.assertTrue(diffSeconds >= 45 && diffSeconds <= 50,
                 "OTP expiration should be ~50 seconds in the future, got: " + diffSeconds);
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/auth/me - Authenticated user can update their profile")
+    void testUpdateCurrentUserProfileSuccess() throws Exception {
+        LoginRequest loginRequest = LoginRequest.builder()
+                .username("staff")
+                .password("Staff@12345")
+                .build();
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        var updateReq = com.api.v1.inventory.model.request.UpdateProfileRequest.builder()
+                .fullName("Updated Staff Name")
+                .email("staffprofile" + System.currentTimeMillis() + "@gmail.com")
+                .phone("099888777")
+                .build();
+
+        mockMvc.perform(put("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", containsString("Profile updated successfully")))
+                .andExpect(jsonPath("$.data.fullName", is("Updated Staff Name")))
+                .andExpect(jsonPath("$.data.phone", is("099888777")));
+    }
+
+    @Test
+    @DisplayName("POST & DELETE /api/v1/auth/me/image - Authenticated user can upload and remove profile image")
+    void testUploadAndRemoveCurrentUserProfileImage() throws Exception {
+        LoginRequest loginRequest = LoginRequest.builder()
+                .username("staff")
+                .password("Staff@12345")
+                .build();
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "avatar.jpg",
+                "image/jpeg",
+                new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x00}
+        );
+
+        mockMvc.perform(multipart("/api/v1/auth/me/image")
+                        .file(file)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.imageUrl", notNullValue()))
+                .andExpect(jsonPath("$.data.imageUrl", containsString("/uploads/images/")));
+
+        // Remove profile image
+        mockMvc.perform(delete("/api/v1/auth/me/image")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.imageUrl", nullValue()));
     }
 }

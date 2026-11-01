@@ -528,4 +528,19 @@ class SupplierControllerTest {
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
     }
+
+    @Test
+    @DisplayName("GET /api/v1/suppliers - Default order displays newest created supplier first (DESC)")
+    void testSuppliersDefaultOrderDisplaysNewestFirst() throws Exception {
+        long ts = System.currentTimeMillis();
+        Supplier s1 = supplierRepository.save(Supplier.builder().name("OrderSup1_" + ts).phone("071" + (ts % 1000000)).build());
+        Supplier s2 = supplierRepository.save(Supplier.builder().name("OrderSup2_" + ts).phone("072" + (ts % 1000000)).build());
+
+        mockMvc.perform(get("/api/v1/suppliers")
+                        .param("search", "OrderSup")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].id", is(s2.getId().intValue())))
+                .andExpect(jsonPath("$.data.content[1].id", is(s1.getId().intValue())));
+    }
 }

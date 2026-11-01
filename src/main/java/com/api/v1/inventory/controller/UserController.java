@@ -15,9 +15,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.api.v1.inventory.common.pagination.PaginationValidator;
 import com.api.v1.inventory.common.util.IdListParser;
@@ -80,6 +82,27 @@ public class UserController {
     ) {
         UserResponse response = appUserService.updateUserStatus(id, request);
         return ResponseEntity.ok(ApiResponse.ok(response, "User status updated successfully"));
+    }
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Upload user profile image",
+            description = "Uploads an image file (JPEG, PNG, GIF, WEBP, or JFIF; max 5 MB) for the given user. " +
+                    "Replaces any previously uploaded profile image. The response contains the updated user with the new imageUrl."
+    )
+    public ResponseEntity<ApiResponse<UserResponse>> uploadUserProfileImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        UserResponse response = appUserService.uploadUserProfileImage(id, file);
+        return ResponseEntity.ok(ApiResponse.ok(response, "User profile image uploaded successfully"));
+    }
+
+    @DeleteMapping("/{id}/image")
+    @Operation(summary = "Remove user profile image", description = "Removes the profile image for the given user.")
+    public ResponseEntity<ApiResponse<UserResponse>> removeUserProfileImage(@PathVariable Long id) {
+        UserResponse response = appUserService.removeUserProfileImage(id);
+        return ResponseEntity.ok(ApiResponse.ok(response, "User profile image removed successfully"));
     }
 
     @DeleteMapping("/{ids}")

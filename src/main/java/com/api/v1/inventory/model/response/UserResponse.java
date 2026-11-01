@@ -20,6 +20,7 @@ public class UserResponse {
     private String email;
     private String fullName;
     private String phone;
+    private String imageUrl;
     private Role role;
     private boolean active;
     private boolean mustChangePassword;
@@ -33,6 +34,7 @@ public class UserResponse {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .phone(user.getPhone())
+                .imageUrl(user.getImageUrl())
                 .role(user.getRole())
                 .active(user.isActive())
                 .mustChangePassword(user.isMustChangePassword())

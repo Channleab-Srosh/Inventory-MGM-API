@@ -7,6 +7,7 @@ import com.api.v1.inventory.common.response.PageResponse;
 import com.api.v1.inventory.model.entity.AppUser;
 import com.api.v1.inventory.model.enumerate.Role;
 import com.api.v1.inventory.model.request.CreateUserRequest;
+import com.api.v1.inventory.model.request.UpdateProfileRequest;
 import com.api.v1.inventory.model.request.UpdateUserRequest;
 import com.api.v1.inventory.model.request.UpdateUserStatusRequest;
 import com.api.v1.inventory.model.response.UserResponse;
@@ -14,6 +15,8 @@ import com.api.v1.inventory.repository.AppUserRepository;
 import com.api.v1.inventory.repository.StockTransactionRepository;
 import com.api.v1.inventory.security.CurrentUserService;
 import com.api.v1.inventory.service.AppUserService;
+import com.api.v1.inventory.service.EmailService;
+import com.api.v1.inventory.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,7 +29,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -39,10 +44,38 @@ public class AppUserServiceImpl implements AppUserService {
 
     public static final int MAX_ADMIN_ACCOUNTS = 3;
 
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String PWD_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    private static final String PWD_LOWER = "abcdefghjkmnpqrstuvwxyz";
+    private static final String PWD_DIGITS = "23456789";
+    private static final String PWD_SPECIAL = "@#$!%*?&";
+    private static final String PWD_ALL = PWD_UPPER + PWD_LOWER + PWD_DIGITS + PWD_SPECIAL;
+
+    public static String generateSecureRandomPassword() {
+        StringBuilder sb = new StringBuilder(10);
+        sb.append(PWD_UPPER.charAt(SECURE_RANDOM.nextInt(PWD_UPPER.length())));
+        sb.append(PWD_LOWER.charAt(SECURE_RANDOM.nextInt(PWD_LOWER.length())));
+        sb.append(PWD_DIGITS.charAt(SECURE_RANDOM.nextInt(PWD_DIGITS.length())));
+        sb.append(PWD_SPECIAL.charAt(SECURE_RANDOM.nextInt(PWD_SPECIAL.length())));
+        for (int i = 4; i < 10; i++) {
+            sb.append(PWD_ALL.charAt(SECURE_RANDOM.nextInt(PWD_ALL.length())));
+        }
+        char[] chars = sb.toString().toCharArray();
+        for (int i = chars.length - 1; i > 0; i--) {
+            int j = SECURE_RANDOM.nextInt(i + 1);
+            char temp = chars[i];
+            chars[i] = chars[j];
+            chars[j] = temp;
+        }
+        return new String(chars);
+    }
+
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrentUserService currentUserService;
     private final StockTransactionRepository stockTransactionRepository;
+    private final FileStorageService fileStorageService;
+    private final EmailService emailService;
 
     @Override
     @Transactional(readOnly = true)
@@ -51,7 +84,7 @@ public class AppUserServiceImpl implements AppUserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
         if (!user.isActive()) {
-            throw new UsernameNotFoundException("User account is inactive or disabled: " + username);
+            throw new UsernameNotFoundException("User account is inactive or pending administrator approval: " + username);
         }
 
         return new User(
@@ -97,12 +130,24 @@ public class AppUserServiceImpl implements AppUserService {
             }
         }
 
+        String rawPassword;
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            String p = request.getPassword().trim();
+            if (p.length() < 6) {
+                throw new BadRequestException("Password must be at least 6 characters");
+            }
+            rawPassword = p;
+        } else {
+            rawPassword = generateSecureRandomPassword();
+        }
+
         AppUser user = AppUser.builder()
                 .username(request.getUsername().trim())
                 .email(request.getEmail() != null && !request.getEmail().trim().isEmpty() ? request.getEmail().trim().toLowerCase() : null)
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(passwordEncoder.encode(rawPassword))
                 .fullName(request.getFullName().trim())
                 .phone(request.getPhone() != null ? request.getPhone().trim() : null)
+                .imageUrl(request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty() ? request.getImageUrl().trim() : null)
                 .role(request.getRole())
                 .active(true)
                 .mustChangePassword(true)
@@ -110,6 +155,21 @@ public class AppUserServiceImpl implements AppUserService {
 
         AppUser saved = userRepository.save(user);
         log.info("Created new user: id={}, username={}, role={}", saved.getId(), saved.getUsername(), saved.getRole());
+
+        if (saved.getEmail() != null && !saved.getEmail().trim().isEmpty()) {
+            try {
+                emailService.sendNewUserCredentialsEmail(
+                        saved.getEmail(),
+                        saved.getFullName(),
+                        saved.getUsername(),
+                        rawPassword,
+                        saved.getRole().name()
+                );
+            } catch (Exception e) {
+                log.warn("Failed to dispatch welcome credentials email to {}: {}", saved.getEmail(), e.getMessage());
+            }
+        }
+
         return UserResponse.fromEntity(saved);
     }
 
@@ -182,6 +242,10 @@ public class AppUserServiceImpl implements AppUserService {
 
         user.setFullName(request.getFullName().trim());
         user.setPhone(request.getPhone() != null ? request.getPhone().trim() : null);
+        if (request.getImageUrl() != null) {
+            String trimmed = request.getImageUrl().trim();
+            user.setImageUrl(trimmed.isEmpty() ? null : trimmed);
+        }
         user.setRole(request.getRole());
 
         AppUser updated = userRepository.save(user);
@@ -211,6 +275,89 @@ public class AppUserServiceImpl implements AppUserService {
     public UserResponse getCurrentUserProfile() {
         AppUser currentUser = currentUserService.getCurrentUser();
         return UserResponse.fromEntity(currentUser);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateCurrentUserProfile(UpdateProfileRequest request) {
+        AppUser user = currentUserService.getCurrentUser();
+
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            String normalizedEmail = request.getEmail().trim().toLowerCase();
+            userRepository.findByEmailIgnoreCase(normalizedEmail).ifPresent(existing -> {
+                if (!existing.getId().equals(user.getId())) {
+                    throw new ConflictException("Email '" + request.getEmail() + "' is already in use by another user");
+                }
+            });
+            user.setEmail(normalizedEmail);
+        } else {
+            user.setEmail(null);
+        }
+
+        user.setFullName(request.getFullName().trim());
+        user.setPhone(request.getPhone() != null && !request.getPhone().trim().isEmpty() ? request.getPhone().trim() : null);
+
+        AppUser updated = userRepository.save(user);
+        log.info("Current user profile updated: id={}, username={}", updated.getId(), updated.getUsername());
+        return UserResponse.fromEntity(updated);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse uploadCurrentUserProfileImage(MultipartFile file) {
+        AppUser user = currentUserService.getCurrentUser();
+        if (user.getImageUrl() != null) {
+            fileStorageService.deleteByUrl(user.getImageUrl());
+        }
+        String newImageUrl = fileStorageService.storeProfileImage(file);
+        user.setImageUrl(newImageUrl);
+        AppUser updated = userRepository.save(user);
+        log.info("User profile image uploaded: id={}, imageUrl={}", updated.getId(), updated.getImageUrl());
+        return UserResponse.fromEntity(updated);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse removeCurrentUserProfileImage() {
+        AppUser user = currentUserService.getCurrentUser();
+        if (user.getImageUrl() != null) {
+            fileStorageService.deleteByUrl(user.getImageUrl());
+            user.setImageUrl(null);
+            user = userRepository.save(user);
+            log.info("User profile image removed: id={}", user.getId());
+        }
+        return UserResponse.fromEntity(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse uploadUserProfileImage(Long id, MultipartFile file) {
+        AppUser user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        if (user.getImageUrl() != null) {
+            fileStorageService.deleteByUrl(user.getImageUrl());
+        }
+        String newImageUrl = fileStorageService.storeProfileImage(file);
+        user.setImageUrl(newImageUrl);
+        AppUser updated = userRepository.save(user);
+        log.info("User profile image uploaded by admin: id={}, imageUrl={}", updated.getId(), updated.getImageUrl());
+        return UserResponse.fromEntity(updated);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse removeUserProfileImage(Long id) {
+        AppUser user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        if (user.getImageUrl() != null) {
+            fileStorageService.deleteByUrl(user.getImageUrl());
+            user.setImageUrl(null);
+            user = userRepository.save(user);
+            log.info("User profile image removed by admin: id={}", user.getId());
+        }
+        return UserResponse.fromEntity(user);
     }
 
     @Override
@@ -259,7 +406,14 @@ public class AppUserServiceImpl implements AppUserService {
             );
         }
 
-        // 5. Atomic delete
+        // 5. Clean up profile images
+        for (AppUser u : users) {
+            if (u.getImageUrl() != null) {
+                fileStorageService.deleteByUrl(u.getImageUrl());
+            }
+        }
+
+        // 6. Atomic delete
         userRepository.deleteAll(users);
         log.info("Deleted {} user(s) with ids: {}", users.size(), ids);
     }

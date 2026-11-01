@@ -93,4 +93,15 @@ class ProductControllerStandaloneTest {
 
         verify(productService).getProducts(any(), any(), any(), any(), eq(StockStatusFilter.LOW_STOCK), any(), any());
     }
+
+    @Test
+    @DisplayName("GET /api/v1/products/units returns all 19 units of measure")
+    void testGetUnitsOfMeasure() throws Exception {
+        mockMvc.perform(get("/api/v1/products/units"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(19))
+                .andExpect(jsonPath("$.data[0]").value("PCS"));
+    }
 }

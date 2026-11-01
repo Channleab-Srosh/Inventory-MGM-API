@@ -79,6 +79,69 @@ public class EmailServiceImpl implements EmailService {
         );
     }
 
+    // -------------------------------------------------------------------------
+    // New User Credentials email – HTML + plain-text multipart
+    // -------------------------------------------------------------------------
+
+    @Async
+    @Override
+    public void sendNewUserCredentialsEmail(String toEmail, String recipientName, String username, String rawPassword, String role) {
+        log.info("Dispatching new user credentials email for [{}]", toEmail);
+        sendCredentialsEmail(toEmail, recipientName, username, rawPassword, role);
+    }
+
+    private void sendCredentialsEmail(String toEmail,
+                                      String recipientName,
+                                      String username,
+                                      String rawPassword,
+                                      String role) {
+        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+        if (mailSender == null || mailFrom == null || mailFrom.trim().isEmpty()) {
+            log.info("SMTP mail sender not fully configured; skipping New User Credentials email dispatch.");
+            return;
+        }
+
+        try {
+            String title = "Account Created Successfully";
+            String subject = "Welcome to Inventory Management System - Your Account Credentials";
+
+            // ---- Build HTML body from template ----
+            String htmlBody = loadUserCredentialsEmailTemplate()
+                    .replace("{{TITLE}}", escapeHtml(title))
+                    .replace("{{NAME}}", escapeHtml(recipientName != null ? recipientName : username))
+                    .replace("{{USERNAME}}", escapeHtml(username))
+                    .replace("{{EMAIL}}", escapeHtml(toEmail))
+                    .replace("{{PASSWORD}}", escapeHtml(rawPassword))
+                    .replace("{{ROLE}}", escapeHtml(role))
+                    .replace("{{YEAR}}", String.valueOf(Year.now().getValue()));
+
+            // ---- Plain-text fallback ----
+            String plainText = "Hello, " + (recipientName != null ? recipientName : username) + "\n\n"
+                    + "An administrator has created an account for you in the Inventory Management System.\n"
+                    + "You can now log in using the credentials below:\n\n"
+                    + "Username: " + username + "\n"
+                    + "Email: " + toEmail + "\n"
+                    + "Temporary Password: " + rawPassword + "\n"
+                    + "Role: " + role + "\n\n"
+                    + "Important Security Notice: For security purposes, you will be prompted to change your password immediately upon your first login. Please do not share your credentials with anyone.\n\n"
+                    + "— " + SENDER_NAME;
+
+            // ---- Compose MimeMessage (multipart/alternative) ----
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, StandardCharsets.UTF_8.name());
+            helper.setFrom(new InternetAddress(mailFrom, SENDER_NAME));
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(plainText, htmlBody);
+
+            mailSender.send(mimeMessage);
+            log.info("New user credentials email sent successfully to {}", toEmail);
+
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.warn("Could not dispatch New User Credentials email via SMTP: {}", e.getMessage());
+        }
+    }
+
     private void sendOtpEmail(String toEmail,
                               String recipientName,
                               String rawOtp,
@@ -167,6 +230,33 @@ public class EmailServiceImpl implements EmailService {
                 + "<p>Your verification code is: <strong>{{OTP_CODE}}</strong></p>"
                 + "<p>It expires in {{EXPIRY_TIME}}.</p>"
                 + "<p>{{WARNING}}</p>"
+                + "<p>&copy; {{YEAR}} Inventory Management System</p>"
+                + "</body></html>";
+    }
+
+    /**
+     * Loads {@code templates/user-credentials-email.html} from the classpath.
+     * Falls back to a minimal inline template if the file is not found.
+     */
+    private String loadUserCredentialsEmailTemplate() {
+        try (InputStream is = getClass().getClassLoader()
+                .getResourceAsStream("templates/user-credentials-email.html")) {
+            if (is != null) {
+                return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            log.warn("Could not load user-credentials-email.html template: {}", e.getMessage());
+        }
+        // Minimal inline fallback
+        return "<html><body>"
+                + "<h2>{{TITLE}}</h2>"
+                + "<p>Hello, {{NAME}}</p>"
+                + "<p>Your account has been created in the Inventory Management System.</p>"
+                + "<p><strong>Username:</strong> {{USERNAME}}</p>"
+                + "<p><strong>Email:</strong> {{EMAIL}}</p>"
+                + "<p><strong>Temporary Password:</strong> {{PASSWORD}}</p>"
+                + "<p><strong>Role:</strong> {{ROLE}}</p>"
+                + "<p>Please log in and change your password.</p>"
                 + "<p>&copy; {{YEAR}} Inventory Management System</p>"
                 + "</body></html>";
     }

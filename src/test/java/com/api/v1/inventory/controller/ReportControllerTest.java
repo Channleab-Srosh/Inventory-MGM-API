@@ -186,7 +186,10 @@ class ReportControllerTest {
                 .andExpect(jsonPath("$.data.content", not(empty())))
                 .andExpect(jsonPath("$.data.content[0].sku", is("REP-PROD-001")))
                 .andExpect(jsonPath("$.data.content[0].unitOfMeasure", is("PCS")))
-                .andExpect(jsonPath("$.data.content[0].totalValue", notNullValue()));
+                .andExpect(jsonPath("$.data.content[0].totalValue", notNullValue()))
+                .andExpect(jsonPath("$.data.totalProducts", notNullValue()))
+                .andExpect(jsonPath("$.data.totalUnits", notNullValue()))
+                .andExpect(jsonPath("$.data.totalInventoryValuation", notNullValue()));
     }
 
     @Test

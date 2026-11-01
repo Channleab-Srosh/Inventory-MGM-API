@@ -53,7 +53,7 @@ public class CustomerController {
     public ResponseEntity<ApiResponse<PageResponse<CustomerResponse>>> getAllCustomers(
             @Parameter(description = "Filter customers by name or phone (case-insensitive substring)")
             @RequestParam(required = false) String search,
-            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
         PageResponse<CustomerResponse> response = customerService.getAllCustomers(search, validatedPageable);

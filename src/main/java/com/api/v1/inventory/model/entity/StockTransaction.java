@@ -49,7 +49,13 @@ public class StockTransaction {
     @JoinColumn(name = "created_by", nullable = false)
     private AppUser createdBy;
 
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = Instant.now();
+        }
+    }
 }

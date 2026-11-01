@@ -27,4 +27,7 @@ public class StockOperationRequest {
     @Size(max = 255, message = "Note cannot exceed 255 characters")
     @Schema(description = "Optional transaction note or reference details")
     private String note;
+
+    @Schema(description = "Optional transaction timestamp (defaults to current time if omitted)")
+    private java.time.Instant transactionDate;
 }

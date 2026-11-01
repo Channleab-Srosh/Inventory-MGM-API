@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -59,6 +60,18 @@ class UserControllerTest {
 
     @BeforeEach
     void setupTokens() throws Exception {
+        userRepository.findByUsernameIgnoreCase("manager").ifPresent(m -> {
+            if (!m.isActive()) {
+                m.setActive(true);
+                userRepository.save(m);
+            }
+        });
+        userRepository.findByUsernameIgnoreCase("staff").ifPresent(s -> {
+            if (!s.isActive()) {
+                s.setActive(true);
+                userRepository.save(s);
+            }
+        });
         adminToken = obtainToken("admin", "Admin@12345");
         try { staffToken = obtainToken("staff", "Staff@12345"); } catch (Throwable ignored) {}
         try { managerToken = obtainToken("manager", "Manager@12345"); } catch (Throwable ignored) {}
@@ -787,5 +800,48 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.message", containsString("Nothing was deleted")));
 
         org.junit.jupiter.api.Assertions.assertTrue(userRepository.existsById(u1.getId()), "User with transactions must NOT be deleted");
+    }
+
+    @Test
+    @DisplayName("POST & DELETE /api/v1/users/{id}/image - Admin uploads and removes profile image for user")
+    void testAdminUploadAndRemoveUserProfileImage() throws Exception {
+        long ts = System.currentTimeMillis();
+        AppUser user = userRepository.save(AppUser.builder()
+                .username("imguser_" + ts)
+                .email("imguser_" + ts + "@gmail.com")
+                .password("$2a$10$dummy")
+                .fullName("Image Test User")
+                .role(Role.STAFF)
+                .active(true)
+                .build());
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "user_avatar.png",
+                "image/png",
+                new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47}
+        );
+
+        // Admin uploads image
+        mockMvc.perform(multipart("/api/v1/users/" + user.getId() + "/image")
+                        .file(file)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.imageUrl", notNullValue()))
+                .andExpect(jsonPath("$.data.imageUrl", containsString("/uploads/images/")));
+
+        // Staff is forbidden to upload image via /api/v1/users/{id}/image
+        mockMvc.perform(multipart("/api/v1/users/" + user.getId() + "/image")
+                        .file(file)
+                        .header("Authorization", "Bearer " + staffToken))
+                .andExpect(status().isForbidden());
+
+        // Admin removes image
+        mockMvc.perform(delete("/api/v1/users/" + user.getId() + "/image")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.imageUrl", nullValue()));
     }
 }

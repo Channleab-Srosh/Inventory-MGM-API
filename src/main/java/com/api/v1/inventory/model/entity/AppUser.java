@@ -38,6 +38,9 @@ public class AppUser {
     @Column(length = 20)
     private String phone;
 
+    @Column(name = "image_url", length = 2048)
+    private String imageUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;

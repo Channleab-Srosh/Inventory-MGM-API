@@ -11,8 +11,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -42,13 +44,40 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse authResponse = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(authResponse, "Account registered and logged in successfully"));
+                .body(ApiResponse.ok(authResponse, "Account registered successfully. Your account is pending administrator approval before you can log in."));
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Get current user profile", description = "Retrieves the authenticated user's profile details.")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
         UserResponse userResponse = appUserService.getCurrentUserProfile();
         return ResponseEntity.ok(ApiResponse.ok(userResponse, "Current user profile retrieved successfully"));
+    }
+
+    @PutMapping("/me")
+    @Operation(summary = "Update current user profile", description = "Allows any authenticated user to update their full name, email, and phone number.")
+    public ResponseEntity<ApiResponse<UserResponse>> updateCurrentUserProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        UserResponse userResponse = appUserService.updateCurrentUserProfile(request);
+        return ResponseEntity.ok(ApiResponse.ok(userResponse, "Profile updated successfully"));
+    }
+
+    @PostMapping(value = "/me/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Upload current user profile image",
+            description = "Uploads an avatar/profile picture (JPEG, PNG, GIF, WEBP, or JFIF; max 5 MB) for the currently authenticated user."
+    )
+    public ResponseEntity<ApiResponse<UserResponse>> uploadCurrentUserProfileImage(
+            @RequestParam("file") MultipartFile file
+    ) {
+        UserResponse userResponse = appUserService.uploadCurrentUserProfileImage(file);
+        return ResponseEntity.ok(ApiResponse.ok(userResponse, "Profile image uploaded successfully"));
+    }
+
+    @DeleteMapping("/me/image")
+    @Operation(summary = "Remove current user profile image", description = "Removes the avatar/profile picture for the currently authenticated user.")
+    public ResponseEntity<ApiResponse<UserResponse>> removeCurrentUserProfileImage() {
+        UserResponse userResponse = appUserService.removeCurrentUserProfileImage();
+        return ResponseEntity.ok(ApiResponse.ok(userResponse, "Profile image removed successfully"));
     }
 
     @PostMapping("/forgot-password")

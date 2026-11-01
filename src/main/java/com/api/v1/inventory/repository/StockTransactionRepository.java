@@ -4,6 +4,7 @@ import com.api.v1.inventory.model.entity.StockTransaction;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,6 +26,10 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
     @Override
     @EntityGraph(attributePaths = {"product", "createdBy"})
     Page<StockTransaction> findAll(Specification<StockTransaction> spec, Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = {"product", "createdBy"})
+    java.util.List<StockTransaction> findAll(Specification<StockTransaction> spec, Sort sort);
 
     boolean existsByProductId(Long productId);
 
@@ -51,20 +56,33 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
             @Param("toDate") Instant toDate,
             Pageable pageable);
 
-    @EntityGraph(attributePaths = {"product", "createdBy"})
-    @Query("SELECT t FROM StockTransaction t " +
-           "WHERE (:productId IS NULL OR t.product.id = :productId) " +
-           "  AND (:type IS NULL OR t.transactionType = :type) " +
-           "  AND (:userId IS NULL OR t.createdBy.id = :userId) " +
-           "  AND (:fromDate IS NULL OR t.createdAt >= :fromDate) " +
-           "  AND (:toDate IS NULL OR t.createdAt <= :toDate) " +
-           "ORDER BY t.createdAt DESC")
-    java.util.List<StockTransaction> findTransactionsList(
-            @Param("productId") Long productId,
-            @Param("type") TransactionType type,
-            @Param("userId") Long userId,
-            @Param("fromDate") Instant fromDate,
-            @Param("toDate") Instant toDate);
+    default java.util.List<StockTransaction> findTransactionsList(
+            Long productId,
+            TransactionType type,
+            Long userId,
+            Instant fromDate,
+            Instant toDate) {
+        Specification<StockTransaction> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            if (productId != null) {
+                predicates.add(cb.equal(root.get("product").get("id"), productId));
+            }
+            if (type != null) {
+                predicates.add(cb.equal(root.get("transactionType"), type));
+            }
+            if (userId != null) {
+                predicates.add(cb.equal(root.get("createdBy").get("id"), userId));
+            }
+            if (fromDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate));
+            }
+            if (toDate != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDate));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        return findAll(spec, Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
 
     @Query("SELECT COALESCE(SUM(t.quantity), 0) FROM StockTransaction t WHERE t.transactionType = :type")
     long sumQuantityByType(@Param("type") TransactionType type);
