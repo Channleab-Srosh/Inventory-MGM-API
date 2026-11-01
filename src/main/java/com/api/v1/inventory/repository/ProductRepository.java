@@ -42,13 +42,31 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "       OR LOWER(p.sku) LIKE CAST(:keyword AS string)) " +
            "  AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
            "  AND (:supplierId IS NULL OR p.supplier.id = :supplierId) " +
-           "  AND (:active IS NULL OR p.active = :active)")
+           "  AND (:active IS NULL OR p.active = :active) " +
+           "  AND (" +
+           "       (:stockStatus IS NULL OR :stockStatus = 'ALL') " +
+           "       OR (:stockStatus = 'IN_STOCK' AND p.stockQuantity > p.minimumStock) " +
+           "       OR (:stockStatus = 'LOW_STOCK' AND p.stockQuantity <= p.minimumStock AND p.stockQuantity > 0) " +
+           "       OR (:stockStatus = 'OUT_OF_STOCK' AND p.stockQuantity <= 0)" +
+           "  ) " +
+           "  AND (:lowStockOnly IS NULL OR :lowStockOnly = false OR p.stockQuantity <= p.minimumStock)")
     Page<Product> searchProducts(
             @Param("keyword") String keyword,
             @Param("categoryId") Long categoryId,
             @Param("supplierId") Long supplierId,
             @Param("active") Boolean active,
+            @Param("stockStatus") String stockStatus,
+            @Param("lowStockOnly") Boolean lowStockOnly,
             Pageable pageable);
+
+    default Page<Product> searchProducts(
+            String keyword,
+            Long categoryId,
+            Long supplierId,
+            Boolean active,
+            Pageable pageable) {
+        return searchProducts(keyword, categoryId, supplierId, active, "ALL", null, pageable);
+    }
 
     @EntityGraph(attributePaths = {"category", "supplier"})
     @Query("SELECT p FROM Product p WHERE p.active = true AND p.stockQuantity <= p.minimumStock")
@@ -76,12 +94,72 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "  AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
            "  AND (:supplierId IS NULL OR p.supplier.id = :supplierId) " +
            "  AND (:active IS NULL OR p.active = :active) " +
-           "  AND (:lowStockOnly IS NULL OR :lowStockOnly = false OR p.stockQuantity <= p.minimumStock)")
+           "  AND (" +
+           "       (:stockStatus IS NULL OR :stockStatus = 'ALL') " +
+           "       OR (:stockStatus = 'IN_STOCK' AND p.stockQuantity > p.minimumStock) " +
+           "       OR (:stockStatus = 'LOW_STOCK' AND p.stockQuantity <= p.minimumStock AND p.stockQuantity > 0) " +
+           "       OR (:stockStatus = 'OUT_OF_STOCK' AND p.stockQuantity <= 0)" +
+           "  ) " +
+           "  AND (:lowStockOnly IS NULL OR :lowStockOnly = false OR p.stockQuantity <= p.minimumStock) " +
+           "  AND (:fromDate IS NULL OR p.updatedAt >= :fromDate) " +
+           "  AND (:toDate IS NULL OR p.updatedAt <= :toDate)")
     Page<Product> searchInventoryReport(
             @Param("keyword") String keyword,
             @Param("categoryId") Long categoryId,
             @Param("supplierId") Long supplierId,
             @Param("active") Boolean active,
+            @Param("stockStatus") String stockStatus,
             @Param("lowStockOnly") Boolean lowStockOnly,
+            @Param("fromDate") java.time.Instant fromDate,
+            @Param("toDate") java.time.Instant toDate,
             Pageable pageable);
+
+    default Page<Product> searchInventoryReport(
+            String keyword,
+            Long categoryId,
+            Long supplierId,
+            Boolean active,
+            String stockStatus,
+            Boolean lowStockOnly,
+            Pageable pageable) {
+        return searchInventoryReport(keyword, categoryId, supplierId, active, stockStatus, lowStockOnly, null, null, pageable);
+    }
+
+    @EntityGraph(attributePaths = {"category", "supplier"})
+    @Query("SELECT p FROM Product p " +
+           "WHERE (CAST(:keyword AS string) IS NULL " +
+           "       OR LOWER(p.name) LIKE CAST(:keyword AS string) " +
+           "       OR LOWER(p.sku) LIKE CAST(:keyword AS string)) " +
+           "  AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
+           "  AND (:supplierId IS NULL OR p.supplier.id = :supplierId) " +
+           "  AND (:active IS NULL OR p.active = :active) " +
+           "  AND (" +
+           "       (:stockStatus IS NULL OR :stockStatus = 'ALL') " +
+           "       OR (:stockStatus = 'IN_STOCK' AND p.stockQuantity > p.minimumStock) " +
+           "       OR (:stockStatus = 'LOW_STOCK' AND p.stockQuantity <= p.minimumStock AND p.stockQuantity > 0) " +
+           "       OR (:stockStatus = 'OUT_OF_STOCK' AND p.stockQuantity <= 0)" +
+           "  ) " +
+           "  AND (:lowStockOnly IS NULL OR :lowStockOnly = false OR p.stockQuantity <= p.minimumStock) " +
+           "  AND (:fromDate IS NULL OR p.updatedAt >= :fromDate) " +
+           "  AND (:toDate IS NULL OR p.updatedAt <= :toDate) " +
+           "ORDER BY p.id ASC")
+    java.util.List<Product> findInventoryReportList(
+            @Param("keyword") String keyword,
+            @Param("categoryId") Long categoryId,
+            @Param("supplierId") Long supplierId,
+            @Param("active") Boolean active,
+            @Param("stockStatus") String stockStatus,
+            @Param("lowStockOnly") Boolean lowStockOnly,
+            @Param("fromDate") java.time.Instant fromDate,
+            @Param("toDate") java.time.Instant toDate);
+
+    default java.util.List<Product> findInventoryReportList(
+            String keyword,
+            Long categoryId,
+            Long supplierId,
+            Boolean active,
+            String stockStatus,
+            Boolean lowStockOnly) {
+        return findInventoryReportList(keyword, categoryId, supplierId, active, stockStatus, lowStockOnly, null, null);
+    }
 }

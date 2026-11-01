@@ -87,16 +87,21 @@ public class ProductServiceImpl implements ProductService {
             Long categoryId,
             Long supplierId,
             Boolean active,
+            com.api.v1.inventory.model.enumerate.StockStatusFilter stockStatus,
+            Boolean lowStockOnly,
             Pageable pageable
     ) {
         String searchPattern = (keyword != null && !keyword.trim().isEmpty())
                 ? "%" + keyword.trim().toLowerCase() + "%"
                 : null;
+        String statusStr = (stockStatus != null) ? stockStatus.name() : com.api.v1.inventory.model.enumerate.StockStatusFilter.ALL.name();
         Page<Product> page = productRepository.searchProducts(
                 searchPattern,
                 categoryId,
                 supplierId,
                 active,
+                statusStr,
+                lowStockOnly,
                 pageable
         );
         return PageResponse.from(page.map(ProductResponse::fromEntity));

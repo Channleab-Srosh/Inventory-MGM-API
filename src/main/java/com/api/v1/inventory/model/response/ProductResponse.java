@@ -25,6 +25,7 @@ public class ProductResponse {
     private com.api.v1.inventory.model.enumerate.UnitOfMeasure unitOfMeasure;
     private BigDecimal unitPrice;
     private Integer stockQuantity;
+    private BigDecimal totalStockValue;
     private Integer minimumStock;
     private boolean active;
     private boolean lowStock;
@@ -41,6 +42,10 @@ public class ProductResponse {
                 product.getMinimumStock() != null &&
                 product.getStockQuantity() <= product.getMinimumStock();
 
+        BigDecimal price = product.getUnitPrice() != null ? product.getUnitPrice() : BigDecimal.ZERO;
+        int qty = product.getStockQuantity() != null ? product.getStockQuantity() : 0;
+        BigDecimal totalStockVal = price.multiply(BigDecimal.valueOf(qty));
+
         return ProductResponse.builder()
                 .id(product.getId())
                 .sku(product.getSku())
@@ -52,6 +57,7 @@ public class ProductResponse {
                 .unitOfMeasure(product.getUnitOfMeasure())
                 .unitPrice(product.getUnitPrice())
                 .stockQuantity(product.getStockQuantity())
+                .totalStockValue(totalStockVal)
                 .minimumStock(product.getMinimumStock())
                 .active(product.isActive())
                 .lowStock(isLow)

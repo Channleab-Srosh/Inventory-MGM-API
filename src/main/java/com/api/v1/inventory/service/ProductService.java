@@ -16,8 +16,20 @@ public interface ProductService {
             Long categoryId,
             Long supplierId,
             Boolean active,
+            com.api.v1.inventory.model.enumerate.StockStatusFilter stockStatus,
+            Boolean lowStockOnly,
             Pageable pageable
     );
+
+    default PageResponse<ProductResponse> getProducts(
+            String keyword,
+            Long categoryId,
+            Long supplierId,
+            Boolean active,
+            Pageable pageable
+    ) {
+        return getProducts(keyword, categoryId, supplierId, active, com.api.v1.inventory.model.enumerate.StockStatusFilter.ALL, null, pageable);
+    }
 
     ProductResponse getProductById(Long id);
 

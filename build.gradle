@@ -38,6 +38,10 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
 
+    // Export Reports (Excel & PDF)
+    implementation 'org.apache.poi:poi-ooxml:5.4.1'
+    implementation 'com.github.librepdf:openpdf:2.0.3'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'

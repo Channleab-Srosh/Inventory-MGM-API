@@ -62,6 +62,10 @@ public class ProductController {
             @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Filter by active status", schema = @Schema(type = "string"))
             @RequestParam(required = false) Boolean active,
+            @Parameter(description = "Filter by stock status: ALL, IN_STOCK, LOW_STOCK, OUT_OF_STOCK")
+            @RequestParam(required = false, defaultValue = "ALL") com.api.v1.inventory.model.enumerate.StockStatusFilter stockStatus,
+            @Parameter(description = "Filter only products with low stock (stockQuantity <= minimumStock)")
+            @RequestParam(required = false) Boolean lowStockOnly,
             @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
@@ -70,6 +74,8 @@ public class ProductController {
                 categoryId,
                 supplierId,
                 active,
+                stockStatus,
+                lowStockOnly,
                 validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Products retrieved successfully"));

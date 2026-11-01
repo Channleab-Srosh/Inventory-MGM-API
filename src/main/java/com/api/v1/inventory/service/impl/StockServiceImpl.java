@@ -44,7 +44,7 @@ public class StockServiceImpl implements StockService {
             throw new BadRequestException("Cannot perform stock operation on inactive product: " + product.getName());
         }
 
-        int quantityBefore = product.getStockQuantity();
+        int quantityBefore = product.getStockQuantity() != null ? product.getStockQuantity() : 0;
         int quantityAfter = quantityBefore + request.getQuantity();
 
         product.setStockQuantity(quantityAfter);

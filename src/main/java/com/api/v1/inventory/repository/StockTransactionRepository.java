@@ -51,6 +51,21 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
             @Param("toDate") Instant toDate,
             Pageable pageable);
 
+    @EntityGraph(attributePaths = {"product", "createdBy"})
+    @Query("SELECT t FROM StockTransaction t " +
+           "WHERE (:productId IS NULL OR t.product.id = :productId) " +
+           "  AND (:type IS NULL OR t.transactionType = :type) " +
+           "  AND (:userId IS NULL OR t.createdBy.id = :userId) " +
+           "  AND (:fromDate IS NULL OR t.createdAt >= :fromDate) " +
+           "  AND (:toDate IS NULL OR t.createdAt <= :toDate) " +
+           "ORDER BY t.createdAt DESC")
+    java.util.List<StockTransaction> findTransactionsList(
+            @Param("productId") Long productId,
+            @Param("type") TransactionType type,
+            @Param("userId") Long userId,
+            @Param("fromDate") Instant fromDate,
+            @Param("toDate") Instant toDate);
+
     @Query("SELECT COALESCE(SUM(t.quantity), 0) FROM StockTransaction t WHERE t.transactionType = :type")
     long sumQuantityByType(@Param("type") TransactionType type);
 }
