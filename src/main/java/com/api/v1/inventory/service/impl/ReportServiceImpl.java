@@ -96,14 +96,16 @@ public class ReportServiceImpl implements ReportService {
 
         String statusStr = (stockStatus != null) ? stockStatus.name() : StockStatusFilter.ALL.name();
 
+        Boolean effectiveActive = (active != null) ? active : Boolean.TRUE;
+
         log.debug("Generating inventory report: keyword={}, categoryId={}, supplierId={}, active={}, stockStatus={}, lowStockOnly={}, fromDate={}, toDate={}",
-                keyword, categoryId, supplierId, active, statusStr, lowStockOnly, range.getFromDate(), range.getToDate());
+                keyword, categoryId, supplierId, effectiveActive, statusStr, lowStockOnly, range.getFromDate(), range.getToDate());
 
         Page<Product> page = productRepository.searchInventoryReport(
                 searchKeyword,
                 categoryId,
                 supplierId,
-                active,
+                effectiveActive,
                 statusStr,
                 lowStockOnly,
                 range.getFromDate(),
@@ -115,7 +117,7 @@ public class ReportServiceImpl implements ReportService {
                 searchKeyword,
                 categoryId,
                 supplierId,
-                active,
+                effectiveActive,
                 statusStr,
                 lowStockOnly,
                 range.getFromDate(),
@@ -187,11 +189,13 @@ public class ReportServiceImpl implements ReportService {
                 : null;
         String statusStr = (stockStatus != null) ? stockStatus.name() : StockStatusFilter.ALL.name();
 
+        Boolean effectiveActive = (active != null) ? active : Boolean.TRUE;
+
         List<Product> products = productRepository.findInventoryReportList(
                 searchKeyword,
                 categoryId,
                 supplierId,
-                active,
+                effectiveActive,
                 statusStr,
                 lowStockOnly,
                 range.getFromDate(),
@@ -248,10 +252,6 @@ public class ReportServiceImpl implements ReportService {
                     TransactionType.STOCK_OUT, range.getFromDate(), range.getToDate()
             );
             totalValuation = stockInVal.subtract(stockOutVal);
-
-            inStockCount = stockTransactionRepository.countDistinctProductsByTypeAndDateRange(
-                    TransactionType.STOCK_IN, range.getFromDate(), range.getToDate()
-            );
         }
 
         List<InventorySummaryReportResponse.CategoryStockBreakdown> categoryBreakdowns = categoryMap.values().stream()
@@ -314,11 +314,13 @@ public class ReportServiceImpl implements ReportService {
                 : null;
         String statusStr = (stockStatus != null) ? stockStatus.name() : StockStatusFilter.ALL.name();
 
+        Boolean effectiveActive = (active != null) ? active : Boolean.TRUE;
+
         List<Product> products = productRepository.findInventoryReportList(
                 searchKeyword,
                 categoryId,
                 supplierId,
-                active,
+                effectiveActive,
                 statusStr,
                 lowStockOnly,
                 range.getFromDate(),
@@ -330,7 +332,7 @@ public class ReportServiceImpl implements ReportService {
                 .toList();
 
         ZoneId zone = resolveZoneId(zoneId);
-        String filterSummary = buildInventoryFilterSummary(keyword, categoryId, supplierId, active, stockStatus, lowStockOnly, period, range);
+        String filterSummary = buildInventoryFilterSummary(keyword, categoryId, supplierId, effectiveActive, stockStatus, lowStockOnly, period, range);
 
         ExportFormat exportFormat = format != null ? format : ExportFormat.EXCEL;
         String timestamp = FILENAME_DATE_FORMATTER.format(Instant.now().atZone(zone));

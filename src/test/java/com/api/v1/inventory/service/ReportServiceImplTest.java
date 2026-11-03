@@ -79,10 +79,10 @@ class ReportServiceImplTest {
     void testGetInventoryReportOutOfStock() {
         Page<Product> page = new PageImpl<>(List.of(testProduct));
         when(productRepository.searchInventoryReport(
-                isNull(), isNull(), isNull(), isNull(), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull(), any(Pageable.class)
+                isNull(), isNull(), isNull(), any(), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull(), any(Pageable.class)
         )).thenReturn(page);
         when(productRepository.findInventoryReportList(
-                isNull(), isNull(), isNull(), isNull(), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull()
+                isNull(), isNull(), isNull(), any(), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull()
         )).thenReturn(List.of(testProduct));
 
         var response = reportService.getInventoryReport(
@@ -96,7 +96,7 @@ class ReportServiceImplTest {
         assertEquals(0, response.getTotalUnits());
         assertEquals(1, response.getOutOfStockCount());
         verify(productRepository).searchInventoryReport(
-                isNull(), isNull(), isNull(), isNull(), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull(), any(Pageable.class)
+                isNull(), isNull(), isNull(), eq(true), eq("OUT_OF_STOCK"), isNull(), isNull(), isNull(), any(Pageable.class)
         );
     }
 
