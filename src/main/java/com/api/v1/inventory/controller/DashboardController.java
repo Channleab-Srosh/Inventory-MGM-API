@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.api.v1.inventory.common.pagination.PaginationValidator;
+import com.api.v1.inventory.model.enumerate.ReportPeriod;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -35,8 +39,13 @@ public class DashboardController {
 
     @GetMapping("/summary")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'STAFF')")
-    public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getSummary() {
-        DashboardSummaryResponse response = dashboardService.getDashboardSummary();
+    public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getSummary(
+            @RequestParam(required = false) ReportPeriod period,
+            @RequestParam(required = false) Instant fromDate,
+            @RequestParam(required = false) Instant toDate,
+            @RequestParam(required = false) String zoneId
+    ) {
+        DashboardSummaryResponse response = dashboardService.getDashboardSummary(period, fromDate, toDate, zoneId);
         return ResponseEntity.ok(ApiResponse.ok(response, "Dashboard summary retrieved successfully"));
     }
 

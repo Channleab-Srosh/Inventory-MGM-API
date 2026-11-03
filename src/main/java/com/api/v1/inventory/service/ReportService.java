@@ -3,6 +3,7 @@ package com.api.v1.inventory.service;
 import com.api.v1.inventory.common.response.PageResponse;
 import com.api.v1.inventory.model.enumerate.ExportFormat;
 import com.api.v1.inventory.model.enumerate.ReportPeriod;
+import com.api.v1.inventory.model.enumerate.StockOutReason;
 import com.api.v1.inventory.model.enumerate.StockStatusFilter;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import com.api.v1.inventory.model.response.ExportedFile;
@@ -19,6 +20,7 @@ public interface ReportService {
     PageResponse<StockTransactionResponse> getStockTransactionReport(
             Long productId,
             TransactionType type,
+            StockOutReason reason,
             Long userId,
             ReportPeriod period,
             Instant fromDate,
@@ -31,11 +33,24 @@ public interface ReportService {
             Long productId,
             TransactionType type,
             Long userId,
+            ReportPeriod period,
+            Instant fromDate,
+            Instant toDate,
+            String zoneId,
+            Pageable pageable
+    ) {
+        return getStockTransactionReport(productId, type, null, userId, period, fromDate, toDate, zoneId, pageable);
+    }
+
+    default PageResponse<StockTransactionResponse> getStockTransactionReport(
+            Long productId,
+            TransactionType type,
+            Long userId,
             Instant fromDate,
             Instant toDate,
             Pageable pageable
     ) {
-        return getStockTransactionReport(productId, type, userId, ReportPeriod.CUSTOM, fromDate, toDate, null, pageable);
+        return getStockTransactionReport(productId, type, null, userId, ReportPeriod.CUSTOM, fromDate, toDate, null, pageable);
     }
 
     InventoryReportPageResponse getInventoryReport(
@@ -130,6 +145,7 @@ public interface ReportService {
             ExportFormat format,
             Long productId,
             TransactionType type,
+            StockOutReason reason,
             Long userId,
             ReportPeriod period,
             Instant fromDate,

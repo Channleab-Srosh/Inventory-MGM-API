@@ -58,8 +58,12 @@ public class ProductController {
             @RequestParam(required = false) String keyword,
             @Parameter(description = "Filter products by category ID")
             @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "Alias for categoryId", hidden = true)
+            @RequestParam(required = false) Long category,
             @Parameter(description = "Filter products by supplier ID")
             @RequestParam(required = false) Long supplierId,
+            @Parameter(description = "Alias for supplierId", hidden = true)
+            @RequestParam(required = false) Long supplier,
             @Parameter(description = "Filter by active status", schema = @Schema(type = "string"))
             @RequestParam(required = false) Boolean active,
             @Parameter(description = "Filter by stock status: ALL, IN_STOCK, LOW_STOCK, OUT_OF_STOCK")
@@ -69,10 +73,12 @@ public class ProductController {
             @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
+        Long effectiveCategoryId = categoryId != null ? categoryId : category;
+        Long effectiveSupplierId = supplierId != null ? supplierId : supplier;
         PageResponse<ProductResponse> response = productService.getProducts(
                 keyword,
-                categoryId,
-                supplierId,
+                effectiveCategoryId,
+                effectiveSupplierId,
                 active,
                 stockStatus,
                 lowStockOnly,

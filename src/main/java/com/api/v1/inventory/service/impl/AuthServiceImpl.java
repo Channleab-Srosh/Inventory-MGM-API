@@ -183,6 +183,8 @@ public class AuthServiceImpl implements AuthService {
         // Successfully verified -> invalidate from cache immediately to prevent replay
         registrationOtpCache.invalidate(email);
 
+        validatePasswordStrength(request.getPassword());
+
         // Self-registered users set their own password; account is created inactive pending administrator approval
         AppUser user = AppUser.builder()
                 .username(username)
@@ -315,6 +317,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 6. Success: update password and revoke token immediately
+        validatePasswordStrength(request.getNewPassword());
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
@@ -336,6 +339,14 @@ public class AuthServiceImpl implements AuthService {
     public void changePassword(com.api.v1.inventory.model.request.ChangePasswordRequest request) {
         AppUser currentUser = currentUserService.getCurrentUser();
 
+        if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
+            throw new BadRequestException("Current password is required");
+        }
+
+        if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
+            throw new BadRequestException("New password is required");
+        }
+
         if (!passwordEncoder.matches(request.getCurrentPassword(), currentUser.getPassword())) {
             throw new BadRequestException("Current password does not match");
         }
@@ -344,10 +355,26 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("New password cannot be the same as the current password");
         }
 
+        validatePasswordStrength(request.getNewPassword());
+
         currentUser.setPassword(passwordEncoder.encode(request.getNewPassword()));
         currentUser.setMustChangePassword(false);
         userRepository.save(currentUser);
 
         log.info("Password successfully changed by authenticated user: id={}, username={}", currentUser.getId(), currentUser.getUsername());
+    }
+
+    private void validatePasswordStrength(String password) {
+        if (password == null || password.length() < 8) {
+            throw new BadRequestException("Password must be at least 8 characters long");
+        }
+        boolean hasUpper = password.chars().anyMatch(Character::isUpperCase);
+        boolean hasLower = password.chars().anyMatch(Character::isLowerCase);
+        boolean hasDigit = password.chars().anyMatch(Character::isDigit);
+        boolean hasSpecial = password.chars().anyMatch(ch -> "!@#$%^&*(),.?\":{}|<>_\\-~+=`".indexOf(ch) >= 0);
+
+        if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            throw new BadRequestException("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (!@#$%&* etc.)");
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.api.v1.inventory.model.entity.Product;
 import com.api.v1.inventory.model.entity.StockTransaction;
 import com.api.v1.inventory.model.enumerate.ExportFormat;
 import com.api.v1.inventory.model.enumerate.ReportPeriod;
+import com.api.v1.inventory.model.enumerate.StockOutReason;
 import com.api.v1.inventory.model.enumerate.StockStatusFilter;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import com.api.v1.inventory.model.response.ExportedFile;
@@ -57,6 +58,7 @@ public class ReportServiceImpl implements ReportService {
     public PageResponse<StockTransactionResponse> getStockTransactionReport(
             Long productId,
             TransactionType type,
+            StockOutReason reason,
             Long userId,
             ReportPeriod period,
             Instant fromDate,
@@ -66,10 +68,10 @@ public class ReportServiceImpl implements ReportService {
     ) {
         ReportDateRange range = ReportDateRange.resolve(period, fromDate, toDate, zoneId);
 
-        log.debug("Generating stock transaction report: productId={}, type={}, userId={}, period={}, fromDate={}, toDate={}",
-                productId, type, userId, period, range.getFromDate(), range.getToDate());
+        log.debug("Generating stock transaction report: productId={}, type={}, reason={}, userId={}, period={}, fromDate={}, toDate={}",
+                productId, type, reason, userId, period, range.getFromDate(), range.getToDate());
 
-        return stockService.getTransactionHistory(productId, type, userId, range.getFromDate(), range.getToDate(), pageable);
+        return stockService.getTransactionHistory(productId, type, reason, userId, range.getFromDate(), range.getToDate(), pageable);
     }
 
     @Override
@@ -229,6 +231,29 @@ public class ReportServiceImpl implements ReportService {
                     .addItem(qty, itemValuation);
         }
 
+        // When a specific period filter is active, totalUnits and valuation reflect the net movement for the period
+        if (range.getFromDate() != null || range.getToDate() != null) {
+            long totalStockIn = stockTransactionRepository.sumQuantityByTypeAndDateRange(
+                    TransactionType.STOCK_IN, range.getFromDate(), range.getToDate()
+            );
+            long totalStockOut = stockTransactionRepository.sumQuantityByTypeAndDateRange(
+                    TransactionType.STOCK_OUT, range.getFromDate(), range.getToDate()
+            );
+            totalUnits = totalStockIn - totalStockOut;
+
+            BigDecimal stockInVal = stockTransactionRepository.sumValueByTypeAndDateRange(
+                    TransactionType.STOCK_IN, range.getFromDate(), range.getToDate()
+            );
+            BigDecimal stockOutVal = stockTransactionRepository.sumValueByTypeAndDateRange(
+                    TransactionType.STOCK_OUT, range.getFromDate(), range.getToDate()
+            );
+            totalValuation = stockInVal.subtract(stockOutVal);
+
+            inStockCount = stockTransactionRepository.countDistinctProductsByTypeAndDateRange(
+                    TransactionType.STOCK_IN, range.getFromDate(), range.getToDate()
+            );
+        }
+
         List<InventorySummaryReportResponse.CategoryStockBreakdown> categoryBreakdowns = categoryMap.values().stream()
                 .sorted(Comparator.comparing(CategoryAccumulator::getCategoryName, String.CASE_INSENSITIVE_ORDER))
                 .map(acc -> InventorySummaryReportResponse.CategoryStockBreakdown.builder()
@@ -332,6 +357,7 @@ public class ReportServiceImpl implements ReportService {
             ExportFormat format,
             Long productId,
             TransactionType type,
+            StockOutReason reason,
             Long userId,
             ReportPeriod period,
             Instant fromDate,
@@ -343,6 +369,7 @@ public class ReportServiceImpl implements ReportService {
         List<StockTransaction> transactions = stockTransactionRepository.findTransactionsList(
                 productId,
                 type,
+                reason,
                 userId,
                 range.getFromDate(),
                 range.getToDate()
@@ -353,7 +380,7 @@ public class ReportServiceImpl implements ReportService {
                 .toList();
 
         ZoneId zone = resolveZoneId(zoneId);
-        String filterSummary = buildTransactionFilterSummary(productId, type, userId, period, range);
+        String filterSummary = buildTransactionFilterSummary(productId, type, reason, userId, period, range);
 
         ExportFormat exportFormat = format != null ? format : ExportFormat.EXCEL;
         String timestamp = FILENAME_DATE_FORMATTER.format(Instant.now().atZone(zone));
@@ -400,11 +427,12 @@ public class ReportServiceImpl implements ReportService {
         return parts.isEmpty() ? "All Products" : String.join(", ", parts);
     }
 
-    private String buildTransactionFilterSummary(Long productId, TransactionType type, Long userId, ReportPeriod period, ReportDateRange range) {
+    private String buildTransactionFilterSummary(Long productId, TransactionType type, StockOutReason reason, Long userId, ReportPeriod period, ReportDateRange range) {
         List<String> parts = new ArrayList<>();
         if (period != null) parts.add("Period: " + period.name());
         if (productId != null) parts.add("Product ID: " + productId);
         if (type != null) parts.add("Type: " + type.name());
+        if (reason != null) parts.add("Reason: " + reason.name());
         if (userId != null) parts.add("User ID: " + userId);
         if (range.getFromDate() != null) parts.add("From: " + range.getFromDate());
         if (range.getToDate() != null) parts.add("To: " + range.getToDate());

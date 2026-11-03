@@ -10,6 +10,7 @@ import com.api.v1.inventory.model.request.UpdateCustomerRequest;
 import com.api.v1.inventory.model.request.UpdateCustomerStatusRequest;
 import com.api.v1.inventory.model.response.CustomerResponse;
 import com.api.v1.inventory.repository.CustomerRepository;
+import com.api.v1.inventory.repository.StockTransactionRepository;
 import com.api.v1.inventory.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final StockTransactionRepository stockTransactionRepository;
 
     @Override
     @Transactional
@@ -162,7 +164,16 @@ public class CustomerServiceImpl implements CustomerService {
             throw new ResourceNotFoundException(msg);
         }
 
-        // 3. Atomic delete
+        // 3. Check for stock transaction references (409 Conflict)
+        List<Long> txReferencedCustomerIds = stockTransactionRepository.findReferencedCustomerIds(ids);
+        if (!txReferencedCustomerIds.isEmpty()) {
+            throw new ConflictException(
+                    "Cannot delete customer because it is currently referenced by stock transactions. Referenced customer IDs: "
+                            + txReferencedCustomerIds + ". Nothing was deleted."
+            );
+        }
+
+        // 4. Atomic delete
         customerRepository.deleteAll(customers);
         log.info("Deleted {} customer(s) with ids: {}", customers.size(), ids);
     }

@@ -94,53 +94,53 @@ SELECT setval('customers_id_seq', (SELECT MAX(id) FROM customers));
 --   - Zero-Stock Fresh Item for live demo
 --   - Varied Units of Measure: PCS, BOX, PACK, BOTTLE, CAN, KG, LITER, DOZEN, CASE, CARTON, BUNDLE, SACK, BAG, PALLET, ROLL, SET, PAIR, TRAY
 -- =============================================================================
-INSERT INTO products (id, sku, name, description, category_id, supplier_id, unit_of_measure, unit_price, stock_quantity, minimum_stock, active, version, created_at, updated_at) VALUES
+INSERT INTO products (id, sku, name, description, category_id, supplier_id, unit_of_measure, unit_price, stock_quantity, minimum_stock, active, image_url, version, created_at, updated_at) VALUES
 -- Electronics
-(1, 'TECH-MBP-14', 'MacBook Pro 14" M3 Pro 18GB/512GB', 'Space Black, 14.2-inch Liquid Retina XDR display, Apple M3 Pro chip.', 1, 1, 'PCS', 1999.00, 12, 5, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '5 days'),
-(2, 'TECH-LOG-MX3', 'Logitech MX Master 3S Wireless Mouse', 'Quiet clicks, 8K DPI sensor on glass tracking, USB-C fast charging.', 1, 1, 'PCS', 99.00, 45, 10, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '4 days'),
-(3, 'TECH-DELL-U27', 'Dell UltraSharp 27" 4K USB-C Hub Monitor (U2723QE)', 'IPS Black technology, 4K UHD 3840 x 2160, 90W Power Delivery.', 1, 1, 'PCS', 580.00, 2, 6, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
-(4, 'TECH-USB-C5', 'Anker PowerLine USB-C Fast Charging Cable 5-Pack', 'Braided nylon USB-C to USB-C 60W fast charge cables, 1.8m length.', 1, 1, 'BUNDLE', 24.50, 0, 15, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '1 day'),
-(5, 'TECH-IPH-13P', 'Apple iPhone 13 Pro 256GB Graphite (Discontinued)', 'Discontinued model retained for warranty replacement records.', 1, 1, 'PCS', 699.00, 0, 0, false, 0, CURRENT_TIMESTAMP - INTERVAL '45 days', CURRENT_TIMESTAMP - INTERVAL '10 days'),
+(1, 'TECH-MBP-14', 'MacBook Pro 14" M3 Pro 18GB/512GB', 'Space Black, 14.2-inch Liquid Retina XDR display, Apple M3 Pro chip.', 1, 1, 'PCS', 1999.00, 12, 5, true, 'http://localhost:8080/uploads/images/41634c40-13fc-45d6-b30c-a31a71b1e805.png', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '2 hours'),
+(2, 'TECH-LOG-MX3', 'Logitech MX Master 3S Wireless Mouse', 'Quiet clicks, 8K DPI sensor on glass tracking, USB-C fast charging.', 1, 1, 'PCS', 99.00, 45, 10, true, 'http://localhost:8080/uploads/images/dd8542a4-4df3-44ac-91fe-4eb706283520.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '4 hours'),
+(3, 'TECH-DELL-U27', 'Dell UltraSharp 27" 4K USB-C Hub Monitor (U2723QE)', 'IPS Black technology, 4K UHD 3840 x 2160, 90W Power Delivery.', 1, 1, 'PCS', 580.00, 2, 6, true, 'http://localhost:8080/uploads/images/e82d014d-5ae5-4e59-8681-79f65b155106.png', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '5 hours'),
+(4, 'TECH-USB-C5', 'Anker PowerLine USB-C Fast Charging Cable 5-Pack', 'Braided nylon USB-C to USB-C 60W fast charge cables, 1.8m length.', 1, 1, 'BUNDLE', 24.50, 0, 15, true, 'http://localhost:8080/uploads/images/ecb4b6bb-c3a1-4a5b-9c3d-8974b151e090.png', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '7 hours'),
+(5, 'TECH-IPH-13P', 'Apple iPhone 13 Pro 256GB Graphite (Discontinued)', 'Discontinued model retained for warranty replacement records.', 1, 1, 'PCS', 699.00, 0, 0, false, 'http://localhost:8080/uploads/images/a9402b2e-e60a-4410-ac9b-ecc3307fe65d.png', 0, CURRENT_TIMESTAMP - INTERVAL '45 days', CURRENT_TIMESTAMP - INTERVAL '10 days'),
 
 -- Beverages
-(6, 'BEV-COKE-330', 'Coca-Cola Original Taste 330ml Cans', 'Classic refreshing cola beverage in 330ml aluminum cans.', 2, 2, 'CAN', 0.65, 480, 100, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
-(7, 'BEV-WTR-500', 'Angkor Puro Natural Mineral Water 500ml', 'Purified natural mineral drinking water in 500ml PET bottle.', 2, 2, 'BOTTLE', 0.35, 850, 200, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '7 days'),
-(8, 'BEV-STING-CS', 'Sting Red Energy Drink 330ml (Case of 24)', 'High energy strawberry carbonated beverage in wholesale case pack of 24 cans.', 2, 2, 'CASE', 13.50, 5, 20, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '1 day'),
-(9, 'BEV-MILK-12L', 'Anchor Full Cream UHT Milk 1L (Carton of 12)', '100% pure New Zealand cows milk, 12 x 1-liter aseptic bricks carton.', 2, 2, 'CARTON', 22.00, 28, 10, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
+(6, 'BEV-COKE-330', 'Coca-Cola Original Taste 330ml Cans', 'Classic refreshing cola beverage in 330ml aluminum cans.', 2, 2, 'CAN', 0.65, 480, 100, true, 'http://localhost:8080/uploads/images/a1629dfe-7cf1-4eef-ad50-b5fe141ed132.png', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '3 hours'),
+(7, 'BEV-WTR-500', 'Angkor Puro Natural Mineral Water 500ml', 'Purified natural mineral drinking water in 500ml PET bottle.', 2, 2, 'BOTTLE', 0.35, 850, 200, true, 'http://localhost:8080/uploads/images/0a076094-82de-4f18-9045-b95fa201fb71.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '7 days'),
+(8, 'BEV-STING-CS', 'Sting Red Energy Drink 330ml (Case of 24)', 'High energy strawberry carbonated beverage in wholesale case pack of 24 cans.', 2, 2, 'CASE', 13.50, 5, 20, true, 'http://localhost:8080/uploads/images/51ed6e19-1158-4ae3-8a5b-b7772d3a19d1.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '10 hours'),
+(9, 'BEV-MILK-12L', 'Anchor Full Cream UHT Milk 1L (Carton of 12)', '100% pure New Zealand cows milk, 12 x 1-liter aseptic bricks carton.', 2, 2, 'CARTON', 22.00, 28, 10, true, 'http://localhost:8080/uploads/images/21cc34fb-bde2-4a46-93aa-cd7a575fd676.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
 
 -- Food & Snacks
-(10, 'FOOD-MAMA-PK', 'Mama Instant Noodles Tom Yum Shrimp 5-Pack', 'Authentic spicy & sour Thai shrimp broth noodles, 5 packs per bundle.', 3, 3, 'PACK', 2.10, 180, 50, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '6 days'),
-(11, 'FOOD-TUNA-CAN', 'Ayam Brand Tuna Flakes in Olive Oil 185g', 'Wild-caught tuna chunks steeped in virgin olive oil, rich in Omega-3.', 3, 3, 'CAN', 1.85, 0, 40, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
-(12, 'FOOD-RICE-50K', 'Malys Angkor Premium Jasmine Rice 50kg Sack', 'Award-winning Cambodian fragrant jasmine rice, grade A export quality.', 3, 3, 'SACK', 42.00, 35, 15, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '8 days'),
-(13, 'FOOD-EGG-TRAY', 'Fresh Farm Brown Eggs Large Grade (Tray of 30)', 'Grade-A organic free-range farm eggs in standard cardboard tray of 30.', 3, 3, 'TRAY', 4.80, 8, 25, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '1 day'),
+(10, 'FOOD-MAMA-PK', 'Mama Instant Noodles Tom Yum Shrimp 5-Pack', 'Authentic spicy & sour Thai shrimp broth noodles, 5 packs per bundle.', 3, 3, 'PACK', 2.10, 180, 50, true, 'http://localhost:8080/uploads/images/e9e3b499-1991-4275-ab1a-2dd8f8ff037a.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '6 days'),
+(11, 'FOOD-TUNA-CAN', 'Ayam Brand Tuna Flakes in Olive Oil 185g', 'Wild-caught tuna chunks steeped in virgin olive oil, rich in Omega-3.', 3, 3, 'CAN', 1.85, 0, 40, true, 'http://localhost:8080/uploads/images/a4d2b6cb-74a4-4fde-97a8-20037df9706c.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '12 hours'),
+(12, 'FOOD-RICE-50K', 'Malys Angkor Premium Jasmine Rice 50kg Sack', 'Award-winning Cambodian fragrant jasmine rice, grade A export quality.', 3, 3, 'SACK', 42.00, 35, 15, true, 'http://localhost:8080/uploads/images/f5e8434f-b7f6-4ccc-86f6-3c47a7a9a2c6.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '8 days'),
+(13, 'FOOD-EGG-TRAY', 'Fresh Farm Brown Eggs Large Grade (Tray of 30)', 'Grade-A organic free-range farm eggs in standard cardboard tray of 30.', 3, 3, 'TRAY', 4.80, 8, 25, true, 'http://localhost:8080/uploads/images/62d49d3c-dd7f-40e3-b910-ce3e546f92fe.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '14 hours'),
 
 -- Office Supplies
-(14, 'OFF-PPR-A4', 'Double A Premium Copy Paper A4 80gsm (Box of 5 Reams)', 'High quality jam-free multipurpose copier paper, 500 sheets x 5 reams (2500 sheets).', 4, 4, 'BOX', 26.50, 65, 20, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '9 days'),
-(15, 'OFF-PEN-BLU', 'Deli Retractable Gel Pen 0.5mm Blue (Box of 12)', 'Smooth writing quick-dry blue ink gel pens with rubberized comfort grip.', 4, 4, 'DOZEN', 5.40, 110, 30, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '4 days'),
-(16, 'OFF-ORG-DESK', 'Deli Mesh Metal 4-Tier Desk Document Organizer', 'Sturdy black steel wire mesh horizontal tray desktop organizer.', 4, 4, 'SET', 16.00, 3, 10, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
+(14, 'OFF-PPR-A4', 'Double A Premium Copy Paper A4 80gsm (Box of 5 Reams)', 'High quality jam-free multipurpose copier paper, 500 sheets x 5 reams (2500 sheets).', 4, 4, 'BOX', 26.50, 65, 20, true, 'http://localhost:8080/uploads/images/3988161e-e563-41bc-9592-ac4331608bde.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '9 days'),
+(15, 'OFF-PEN-BLU', 'Deli Retractable Gel Pen 0.5mm Blue (Box of 12)', 'Smooth writing quick-dry blue ink gel pens with rubberized comfort grip.', 4, 4, 'DOZEN', 5.40, 110, 30, true, 'http://localhost:8080/uploads/images/98f88819-e5ed-4350-99b6-f83282541926.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '4 days'),
+(16, 'OFF-ORG-DESK', 'Deli Mesh Metal 4-Tier Desk Document Organizer', 'Sturdy black steel wire mesh horizontal tray desktop organizer.', 4, 4, 'SET', 16.00, 3, 10, true, 'http://localhost:8080/uploads/images/e197467f-f0ec-4720-abad-34fd7576cb85.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
 
 -- Health & Hygiene
-(17, 'MED-MSK-50P', 'Medical 4-Ply Surgical Face Mask (Pack of 50)', 'BFE >= 99% bacterial filtration efficiency with soft elastic ear loops.', 5, 5, 'PACK', 3.20, 240, 50, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '11 days'),
-(18, 'MED-SAN-500', 'SafeGuard Antibacterial Hand Gel Sanitizer 500ml', '75% ethyl alcohol instant hand sanitizer with pump dispenser.', 5, 5, 'BOTTLE', 2.80, 95, 30, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '6 days'),
-(19, 'MED-ALC-5L', 'Medical Grade 70% Isopropyl Alcohol 5-Liter Gallon', 'High purity surface disinfectant and cleaning alcohol for clinics and facilities.', 5, 5, 'LITER', 14.50, 4, 15, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
+(17, 'MED-MSK-50P', 'Medical 4-Ply Surgical Face Mask (Pack of 50)', 'BFE >= 99% bacterial filtration efficiency with soft elastic ear loops.', 5, 5, 'PACK', 3.20, 240, 50, true, 'http://localhost:8080/uploads/images/6ce901cf-a92b-4167-a212-9100cb29b181.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '11 days'),
+(18, 'MED-SAN-500', 'SafeGuard Antibacterial Hand Gel Sanitizer 500ml', '75% ethyl alcohol instant hand sanitizer with pump dispenser.', 5, 5, 'BOTTLE', 2.80, 95, 30, true, 'http://localhost:8080/uploads/images/3ecbb0e0-e052-412d-8fa5-00a3b8ebaee5.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '6 days'),
+(19, 'MED-ALC-5L', 'Medical Grade 70% Isopropyl Alcohol 5-Liter Gallon', 'High purity surface disinfectant and cleaning alcohol for clinics and facilities.', 5, 5, 'LITER', 14.50, 4, 15, true, 'http://localhost:8080/uploads/images/05cab29f-6882-46f9-a710-3712b74670cd.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
 
 -- Hardware & Tools
-(20, 'TOOL-DRL-20V', 'Total Cordless Brushless Impact Drill 20V Li-Ion', 'Heavy duty brushless motor, 60Nm torque, 2x 2.0Ah batteries and charger case.', 6, 6, 'SET', 85.00, 22, 8, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '7 days'),
-(21, 'TOOL-GLV-PRO', 'Heavy-Duty Nitrile Coated Work Gloves (Pair)', 'Abrasion-resistant breathable nylon liner with oil-grip textured palm.', 6, 6, 'PAIR', 2.20, 140, 50, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '5 days'),
-(22, 'TOOL-WRN-42', 'Total 42-Piece Combination Spanner & Socket Tool Set', 'Chrome vanadium steel socket wrench set in heavy duty blow-molded case.', 6, 6, 'SET', 48.00, 0, 5, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '1 day'),
+(20, 'TOOL-DRL-20V', 'Total Cordless Brushless Impact Drill 20V Li-Ion', 'Heavy duty brushless motor, 60Nm torque, 2x 2.0Ah batteries and charger case.', 6, 6, 'SET', 85.00, 22, 8, true, 'http://localhost:8080/uploads/images/c03762b9-b1a9-4421-8651-7a438cd749a3.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '7 days'),
+(21, 'TOOL-GLV-PRO', 'Heavy-Duty Nitrile Coated Work Gloves (Pair)', 'Abrasion-resistant breathable nylon liner with oil-grip textured palm.', 6, 6, 'PAIR', 2.20, 140, 50, true, 'http://localhost:8080/uploads/images/fdcfe0db-29f4-4060-bddc-4c80ccd284f5.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '5 days'),
+(22, 'TOOL-WRN-42', 'Total 42-Piece Combination Spanner & Socket Tool Set', 'Chrome vanadium steel socket wrench set in heavy duty blow-molded case.', 6, 6, 'SET', 48.00, 0, 5, true, 'http://localhost:8080/uploads/images/9b0ac074-ad2d-4544-8113-6c39e2477672.png', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '1 hour'),
 
 -- Furniture
-(23, 'FURN-CHR-ERG', 'Ergonomic High-Back Mesh Executive Office Chair', 'Adjustable lumbar support, 3D armrests, breathable Korean mesh, Class 4 gas lift.', 7, 7, 'PCS', 175.00, 16, 5, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '10 days'),
-(24, 'FURN-RCK-IND', 'Heavy-Duty 4-Tier Metal Warehouse Storage Rack 200kg/Shelf', 'Industrial powder-coated blue and orange boltless steel shelving unit (200x60x200cm).', 7, 7, 'SET', 110.00, 2, 4, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '3 days'),
+(23, 'FURN-CHR-ERG', 'Ergonomic High-Back Mesh Executive Office Chair', 'Adjustable lumbar support, 3D armrests, breathable Korean mesh, Class 4 gas lift.', 7, 7, 'PCS', 175.00, 16, 5, true, 'http://localhost:8080/uploads/images/e1ed6814-1be2-4726-9896-a45b3b0f7cb9.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '10 days'),
+(24, 'FURN-RCK-IND', 'Heavy-Duty 4-Tier Metal Warehouse Storage Rack 200kg/Shelf', 'Industrial powder-coated blue and orange boltless steel shelving unit (200x60x200cm).', 7, 7, 'SET', 110.00, 2, 4, true, 'http://localhost:8080/uploads/images/54cc8b30-3020-4a9a-9aba-fd6e8a1f8685.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '5 hours'),
 
 -- Packaging Materials
-(25, 'PACK-BOX-MED', 'Corrugated Double-Wall Shipping Carton Box (40x30x30cm)', 'Heavy duty brown kraft corrugated cardboard box for e-commerce dispatch.', 8, 8, 'CARTON', 1.25, 550, 100, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '4 days'),
-(26, 'PACK-TPE-ROL', 'Heavy-Duty Acrylic Clear Packaging Tape (48mm x 100m)', 'Strong adhesive transparent sealing tape roll for warehouse carton packing.', 8, 8, 'ROLL', 1.10, 160, 50, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '5 days'),
-(27, 'PACK-PLT-WOD', 'Standard Heat-Treated Euro Wooden Pallet (1200x800mm)', 'IPPC ISPM-15 certified 4-way entry heavy industrial timber pallet.', 8, 8, 'PALLET', 18.00, 25, 10, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '8 days'),
-(28, 'PACK-BAG-TRH', 'Heavy-Duty Industrial Black Trash Bags 90x120cm (Roll)', 'Tough puncture-resistant LDPE extra-large garbage liners, 25 bags per roll.', 8, 8, 'BAG', 6.50, 48, 20, true, 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
+(25, 'PACK-BOX-MED', 'Corrugated Double-Wall Shipping Carton Box (40x30x30cm)', 'Heavy duty brown kraft corrugated cardboard box for e-commerce dispatch.', 8, 8, 'CARTON', 1.25, 550, 100, true, 'http://localhost:8080/uploads/images/47209dcf-a46a-486a-a46d-8f97fb6eb677.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '4 days'),
+(26, 'PACK-TPE-ROL', 'Heavy-Duty Acrylic Clear Packaging Tape (48mm x 100m)', 'Strong adhesive transparent sealing tape roll for warehouse carton packing.', 8, 8, 'ROLL', 1.10, 160, 50, true, 'http://localhost:8080/uploads/images/fb6dbf38-d61a-426a-a032-64016ca95077.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '5 days'),
+(27, 'PACK-PLT-WOD', 'Standard Heat-Treated Euro Wooden Pallet (1200x800mm)', 'IPPC ISPM-15 certified 4-way entry heavy industrial timber pallet.', 8, 8, 'PALLET', 18.00, 25, 10, true, 'http://localhost:8080/uploads/images/abc2f73d-c74a-4ae2-8036-a626eb96800a.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '8 days'),
+(28, 'PACK-BAG-TRH', 'Heavy-Duty Industrial Black Trash Bags 90x120cm (Roll)', 'Tough puncture-resistant LDPE extra-large garbage liners, 25 bags per roll.', 8, 8, 'BAG', 6.50, 48, 20, true, 'http://localhost:8080/uploads/images/963c4607-4368-406d-b89f-f858c6eea386.jpg', 2, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP - INTERVAL '2 days'),
 
 -- Zero-Stock Fresh Item (No supplier, ready for live demo stock-in!)
-(29, 'DEMO-NEW-ITEM', 'New Unstocked Product for Live Demo', 'Freshly created catalog entry with zero initial stock and zero transaction history. Ready to demonstrate live Stock-In and Stock-Out on stage.', 1, NULL, 'PCS', 49.99, 0, 5, true, 0, CURRENT_TIMESTAMP - INTERVAL '1 day', CURRENT_TIMESTAMP - INTERVAL '1 day');
+(29, 'DEMO-NEW-ITEM', 'New Unstocked Product for Live Demo', 'Freshly created catalog entry with zero initial stock and zero transaction history. Ready to demonstrate live Stock-In and Stock-Out on stage.', 1, NULL, 'PCS', 49.99, 0, 5, true, NULL, 0, CURRENT_TIMESTAMP - INTERVAL '1 day', CURRENT_TIMESTAMP - INTERVAL '1 day');
 
 SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));
 
@@ -150,114 +150,114 @@ SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));
 -- Timestamp spread across the last 30 days for rich date-range report testing.
 -- Audit trail: Admin (1), Manager (2), Staff (3), Sopheak (4).
 -- =============================================================================
-INSERT INTO stock_transactions (id, product_id, transaction_type, quantity, quantity_before, quantity_after, note, created_by, created_at) VALUES
+INSERT INTO stock_transactions (id, product_id, transaction_type, reason, quantity, quantity_before, quantity_after, note, created_by, created_at) VALUES
 -- Product 1: MacBook Pro 14" (final: 12)
-(1, 1, 'STOCK_IN', 15, 0, 15, 'Initial container shipment PO-2026-001', 1, CURRENT_TIMESTAMP - INTERVAL '20 days'),
-(2, 1, 'STOCK_OUT', 3, 15, 12, 'Delivered 3 units to Paragon International University', 3, CURRENT_TIMESTAMP - INTERVAL '5 days'),
+(1, 1, 'STOCK_IN', NULL, 15, 0, 15, 'Initial container shipment PO-2026-001', 1, CURRENT_TIMESTAMP - INTERVAL '20 days'),
+(2, 1, 'STOCK_OUT', 'SALE', 3, 15, 12, 'Delivered 3 units to Paragon International University', 3, CURRENT_TIMESTAMP - INTERVAL '2 hours'),
 
 -- Product 2: Logitech Mouse (final: 45)
-(3, 2, 'STOCK_IN', 60, 0, 60, 'Distributor batch stock receiving #PP-992', 2, CURRENT_TIMESTAMP - INTERVAL '18 days'),
-(4, 2, 'STOCK_OUT', 15, 60, 45, 'Sales order SO-883 to Aeon Mall tech zone', 3, CURRENT_TIMESTAMP - INTERVAL '4 days'),
+(3, 2, 'STOCK_IN', NULL, 60, 0, 60, 'Distributor batch stock receiving #PP-992', 2, CURRENT_TIMESTAMP - INTERVAL '18 days'),
+(4, 2, 'STOCK_OUT', 'SALE', 15, 60, 45, 'Sales order SO-883 to Aeon Mall tech zone', 3, CURRENT_TIMESTAMP - INTERVAL '4 hours'),
 
 -- Product 3: Dell 4K Monitor (final: 2, LOW STOCK)
-(5, 3, 'STOCK_IN', 10, 0, 10, 'Import shipment invoice #INV-771', 1, CURRENT_TIMESTAMP - INTERVAL '15 days'),
-(6, 3, 'STOCK_OUT', 8, 10, 2, 'Dispatched 8 units for RUPP computer lab upgrade', 4, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+(5, 3, 'STOCK_IN', NULL, 10, 0, 10, 'Import shipment invoice #INV-771', 1, CURRENT_TIMESTAMP - INTERVAL '8 hours'),
+(6, 3, 'STOCK_OUT', 'SALE', 8, 10, 2, 'Dispatched 8 units for RUPP computer lab upgrade', 4, CURRENT_TIMESTAMP - INTERVAL '5 hours'),
 
 -- Product 4: Anker USB-C Cable (final: 0, OUT OF STOCK)
-(7, 4, 'STOCK_IN', 30, 0, 30, 'Initial cable inventory intake', 2, CURRENT_TIMESTAMP - INTERVAL '25 days'),
-(8, 4, 'STOCK_OUT', 30, 30, 0, 'Bulk delivery order to Chip Mong retail shop', 3, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+(7, 4, 'STOCK_IN', NULL, 30, 0, 30, 'Initial cable inventory intake', 2, CURRENT_TIMESTAMP - INTERVAL '25 days'),
+(8, 4, 'STOCK_OUT', 'SALE', 30, 30, 0, 'Bulk delivery order to Chip Mong retail shop', 3, CURRENT_TIMESTAMP - INTERVAL '7 hours'),
 
 -- Product 6: Coca-Cola Cans (final: 480)
-(9, 6, 'STOCK_IN', 600, 0, 600, 'Factory delivery direct from Coca-Cola bottling plant', 3, CURRENT_TIMESTAMP - INTERVAL '14 days'),
-(10, 6, 'STOCK_OUT', 120, 600, 480, 'Consignment delivery to Circle K Express', 4, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+(9, 6, 'STOCK_IN', NULL, 600, 0, 600, 'Factory delivery direct from Coca-Cola bottling plant', 3, CURRENT_TIMESTAMP - INTERVAL '6 hours'),
+(10, 6, 'STOCK_OUT', 'SALE', 120, 600, 480, 'Consignment delivery to Circle K Express', 4, CURRENT_TIMESTAMP - INTERVAL '3 hours'),
 
 -- Product 7: Mineral Water 500ml (final: 850)
-(11, 7, 'STOCK_IN', 1000, 0, 1000, 'Pallet delivery batch #WTR-902', 3, CURRENT_TIMESTAMP - INTERVAL '22 days'),
-(12, 7, 'STOCK_OUT', 150, 1000, 850, 'School cafeteria weekly supply to Sunrise School', 3, CURRENT_TIMESTAMP - INTERVAL '7 days'),
+(11, 7, 'STOCK_IN', NULL, 1000, 0, 1000, 'Pallet delivery batch #WTR-902', 3, CURRENT_TIMESTAMP - INTERVAL '22 days'),
+(12, 7, 'STOCK_OUT', 'SALE', 150, 1000, 850, 'School cafeteria weekly supply to Sunrise School', 3, CURRENT_TIMESTAMP - INTERVAL '7 days'),
 
 -- Product 8: Sting Energy Drink (final: 5, LOW STOCK)
-(13, 8, 'STOCK_IN', 40, 0, 40, 'Monthly bulk warehouse replenishment', 2, CURRENT_TIMESTAMP - INTERVAL '12 days'),
-(14, 8, 'STOCK_OUT', 35, 40, 5, 'Dispatched 35 cases to Tela Mart retail stations', 3, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+(13, 8, 'STOCK_IN', NULL, 40, 0, 40, 'Monthly bulk warehouse replenishment', 2, CURRENT_TIMESTAMP - INTERVAL '12 days'),
+(14, 8, 'STOCK_OUT', 'SALE', 35, 40, 5, 'Dispatched 35 cases to Tela Mart retail stations', 3, CURRENT_TIMESTAMP - INTERVAL '10 hours'),
 
 -- Product 9: Anchor Milk Carton (final: 28)
-(15, 9, 'STOCK_IN', 50, 0, 50, 'Cold chain dairy shipment received', 4, CURRENT_TIMESTAMP - INTERVAL '10 days'),
-(16, 9, 'STOCK_OUT', 22, 50, 28, 'Delivered to Lucky Supermarket dairy section', 3, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+(15, 9, 'STOCK_IN', NULL, 50, 0, 50, 'Cold chain dairy shipment received', 4, CURRENT_TIMESTAMP - INTERVAL '10 days'),
+(16, 9, 'STOCK_OUT', 'SALE', 22, 50, 28, 'Delivered to Lucky Supermarket dairy section', 3, CURRENT_TIMESTAMP - INTERVAL '3 days'),
 
 -- Product 10: Mama Noodles 5-Pack (final: 180)
-(17, 10, 'STOCK_IN', 250, 0, 250, 'Warehouse PO-409 container intake', 3, CURRENT_TIMESTAMP - INTERVAL '16 days'),
-(18, 10, 'STOCK_OUT', 70, 250, 180, 'Bulk distribution to university mini-mart', 4, CURRENT_TIMESTAMP - INTERVAL '6 days'),
+(17, 10, 'STOCK_IN', NULL, 250, 0, 250, 'Warehouse PO-409 container intake', 3, CURRENT_TIMESTAMP - INTERVAL '16 days'),
+(18, 10, 'STOCK_OUT', 'SALE', 70, 250, 180, 'Bulk distribution to university mini-mart', 4, CURRENT_TIMESTAMP - INTERVAL '6 days'),
 
 -- Product 11: Ayam Canned Tuna (final: 0, OUT OF STOCK)
-(19, 11, 'STOCK_IN', 80, 0, 80, 'Initial stock receiving PO-2026-088', 1, CURRENT_TIMESTAMP - INTERVAL '28 days'),
-(20, 11, 'STOCK_OUT', 80, 80, 0, 'Complete stock clearance order by Aeon Supermarket', 3, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+(19, 11, 'STOCK_IN', NULL, 80, 0, 80, 'Initial stock receiving PO-2026-088', 1, CURRENT_TIMESTAMP - INTERVAL '28 days'),
+(20, 11, 'STOCK_OUT', 'SALE', 80, 80, 0, 'Complete stock clearance order by Aeon Supermarket', 3, CURRENT_TIMESTAMP - INTERVAL '12 hours'),
 
 -- Product 12: Malys Angkor Jasmine Rice (final: 35)
-(21, 12, 'STOCK_IN', 50, 0, 50, 'Rice mill harvest delivery batch #R-2026', 2, CURRENT_TIMESTAMP - INTERVAL '20 days'),
-(22, 12, 'STOCK_OUT', 15, 50, 35, 'Institutional catering order to RUPP student cafeteria', 3, CURRENT_TIMESTAMP - INTERVAL '8 days'),
+(21, 12, 'STOCK_IN', NULL, 50, 0, 50, 'Rice mill harvest delivery batch #R-2026', 2, CURRENT_TIMESTAMP - INTERVAL '20 days'),
+(22, 12, 'STOCK_OUT', 'SALE', 15, 50, 35, 'Institutional catering order to RUPP student cafeteria', 3, CURRENT_TIMESTAMP - INTERVAL '8 days'),
 
 -- Product 13: Fresh Farm Eggs (final: 8, LOW STOCK)
-(23, 13, 'STOCK_IN', 60, 0, 60, 'Daily farm delivery batch #EGG-41', 4, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-(24, 13, 'STOCK_OUT', 52, 60, 8, 'Restaurant wholesale fulfillment to Lucky Express', 3, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+(23, 13, 'STOCK_IN', NULL, 60, 0, 60, 'Daily farm delivery batch #EGG-41', 4, CURRENT_TIMESTAMP - INTERVAL '5 days'),
+(24, 13, 'STOCK_OUT', 'SALE', 52, 60, 8, 'Restaurant wholesale fulfillment to Lucky Express', 3, CURRENT_TIMESTAMP - INTERVAL '14 hours'),
 
 -- Product 14: Double A Copy Paper (final: 65)
-(25, 14, 'STOCK_IN', 100, 0, 100, 'Stationery warehouse intake PO-808', 3, CURRENT_TIMESTAMP - INTERVAL '21 days'),
-(26, 14, 'STOCK_OUT', 35, 100, 65, 'Quarterly office paper supply to Borey Peng Huoth', 4, CURRENT_TIMESTAMP - INTERVAL '9 days'),
+(25, 14, 'STOCK_IN', NULL, 100, 0, 100, 'Stationery warehouse intake PO-808', 3, CURRENT_TIMESTAMP - INTERVAL '21 days'),
+(26, 14, 'STOCK_OUT', 'SALE', 35, 100, 65, 'Quarterly office paper supply to Borey Peng Huoth', 4, CURRENT_TIMESTAMP - INTERVAL '9 days'),
 
 -- Product 15: Deli Gel Pens (final: 110)
-(27, 15, 'STOCK_IN', 150, 0, 150, 'Stock receiving from Deli factory consignment', 3, CURRENT_TIMESTAMP - INTERVAL '19 days'),
-(28, 15, 'STOCK_OUT', 40, 150, 110, 'Supplied to Paragon IU administrative office', 3, CURRENT_TIMESTAMP - INTERVAL '4 days'),
+(27, 15, 'STOCK_IN', NULL, 150, 0, 150, 'Stock receiving from Deli factory consignment', 3, CURRENT_TIMESTAMP - INTERVAL '19 days'),
+(28, 15, 'STOCK_OUT', 'SALE', 40, 150, 110, 'Supplied to Paragon IU administrative office', 3, CURRENT_TIMESTAMP - INTERVAL '4 days'),
 
 -- Product 16: Desk Organizer (final: 3, LOW STOCK)
-(29, 16, 'STOCK_IN', 20, 0, 20, 'Desk organizer shipment received', 4, CURRENT_TIMESTAMP - INTERVAL '15 days'),
-(30, 16, 'STOCK_OUT', 17, 20, 3, 'Corporate furnishing delivery to Chip Mong Tower', 3, CURRENT_TIMESTAMP - INTERVAL '2 days'),
+(29, 16, 'STOCK_IN', NULL, 20, 0, 20, 'Desk organizer shipment received', 4, CURRENT_TIMESTAMP - INTERVAL '15 days'),
+(30, 16, 'STOCK_OUT', 'SALE', 17, 20, 3, 'Corporate furnishing delivery to Chip Mong Tower', 3, CURRENT_TIMESTAMP - INTERVAL '2 days'),
 
 -- Product 17: Medical Face Masks (final: 240)
-(31, 17, 'STOCK_IN', 300, 0, 300, 'Medical logistics container delivery #MED-102', 2, CURRENT_TIMESTAMP - INTERVAL '24 days'),
-(32, 17, 'STOCK_OUT', 60, 300, 240, 'Delivered to Sunrise International School health room', 3, CURRENT_TIMESTAMP - INTERVAL '11 days'),
+(31, 17, 'STOCK_IN', NULL, 300, 0, 300, 'Medical logistics container delivery #MED-102', 2, CURRENT_TIMESTAMP - INTERVAL '24 days'),
+(32, 17, 'STOCK_OUT', 'SALE', 60, 300, 240, 'Delivered to Sunrise International School health room', 3, CURRENT_TIMESTAMP - INTERVAL '11 days'),
 
 -- Product 18: Hand Gel Sanitizer (final: 95)
-(33, 18, 'STOCK_IN', 120, 0, 120, 'Warehouse delivery batch #SAN-55', 4, CURRENT_TIMESTAMP - INTERVAL '17 days'),
-(34, 18, 'STOCK_OUT', 25, 120, 95, 'Campus hygiene refill order for RUPP facilities', 3, CURRENT_TIMESTAMP - INTERVAL '6 days'),
+(33, 18, 'STOCK_IN', NULL, 120, 0, 120, 'Warehouse delivery batch #SAN-55', 4, CURRENT_TIMESTAMP - INTERVAL '17 days'),
+(34, 18, 'STOCK_OUT', 'SALE', 25, 120, 95, 'Campus hygiene refill order for RUPP facilities', 3, CURRENT_TIMESTAMP - INTERVAL '6 days'),
 
 -- Product 19: Isopropyl Alcohol 5L (final: 4, LOW STOCK)
-(35, 19, 'STOCK_IN', 25, 0, 25, 'Direct chemical supply shipment from Medix', 1, CURRENT_TIMESTAMP - INTERVAL '13 days'),
-(36, 19, 'STOCK_OUT', 21, 25, 4, 'Disinfectant quota dispatch for Borey Peng Huoth', 3, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+(35, 19, 'STOCK_IN', NULL, 25, 0, 25, 'Direct chemical supply shipment from Medix', 1, CURRENT_TIMESTAMP - INTERVAL '13 days'),
+(36, 19, 'STOCK_OUT', 'DAMAGE', 21, 25, 4, 'Leaked and damaged containers during warehouse transfer - written off', 3, CURRENT_TIMESTAMP - INTERVAL '3 days'),
 
 -- Product 20: Total Cordless Drill (final: 22)
-(37, 20, 'STOCK_IN', 30, 0, 30, 'Total Tools official distributor delivery #DRL-301', 2, CURRENT_TIMESTAMP - INTERVAL '23 days'),
-(38, 20, 'STOCK_OUT', 8, 30, 22, 'Workshop maintenance equipment dispatch', 4, CURRENT_TIMESTAMP - INTERVAL '7 days'),
+(37, 20, 'STOCK_IN', NULL, 30, 0, 30, 'Total Tools official distributor delivery #DRL-301', 2, CURRENT_TIMESTAMP - INTERVAL '23 days'),
+(38, 20, 'STOCK_OUT', 'SALE', 8, 30, 22, 'Workshop maintenance equipment dispatch', 4, CURRENT_TIMESTAMP - INTERVAL '7 days'),
 
 -- Product 21: Work Gloves Pair (final: 140)
-(39, 21, 'STOCK_IN', 200, 0, 200, 'Safety inventory initial stock-in', 3, CURRENT_TIMESTAMP - INTERVAL '18 days'),
-(40, 21, 'STOCK_OUT', 60, 200, 140, 'Supplied to Aeon logistics warehouse team', 3, CURRENT_TIMESTAMP - INTERVAL '5 days'),
+(39, 21, 'STOCK_IN', NULL, 200, 0, 200, 'Safety inventory initial stock-in', 3, CURRENT_TIMESTAMP - INTERVAL '18 days'),
+(40, 21, 'STOCK_OUT', 'SALE', 60, 200, 140, 'Supplied to Aeon logistics warehouse team', 3, CURRENT_TIMESTAMP - INTERVAL '5 days'),
 
 -- Product 22: Combination Spanner Set (final: 0, OUT OF STOCK)
-(41, 22, 'STOCK_IN', 15, 0, 15, 'Batch tool import shipment #WRN-88', 1, CURRENT_TIMESTAMP - INTERVAL '27 days'),
-(42, 22, 'STOCK_OUT', 15, 15, 0, 'Emergency tools dispatch to maintenance service crew', 4, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+(41, 22, 'STOCK_IN', NULL, 15, 0, 15, 'Batch tool import shipment #WRN-88', 1, CURRENT_TIMESTAMP - INTERVAL '27 days'),
+(42, 22, 'STOCK_OUT', 'OTHER', 15, 15, 0, 'Internal equipment allocation for facility repairs', 4, CURRENT_TIMESTAMP - INTERVAL '1 hour'),
 
 -- Product 23: Executive Office Chair (final: 16)
-(43, 23, 'STOCK_IN', 25, 0, 25, 'Furniture container unloading #FUR-02', 2, CURRENT_TIMESTAMP - INTERVAL '26 days'),
-(44, 23, 'STOCK_OUT', 9, 25, 16, 'Office fit-out order for Paragon IU faculty lounge', 3, CURRENT_TIMESTAMP - INTERVAL '10 days'),
+(43, 23, 'STOCK_IN', NULL, 25, 0, 25, 'Furniture container unloading #FUR-02', 2, CURRENT_TIMESTAMP - INTERVAL '26 days'),
+(44, 23, 'STOCK_OUT', 'SALE', 9, 25, 16, 'Office fit-out order for Paragon IU faculty lounge', 3, CURRENT_TIMESTAMP - INTERVAL '10 days'),
 
 -- Product 24: Warehouse Storage Rack (final: 2, LOW STOCK)
-(45, 24, 'STOCK_IN', 8, 0, 8, 'Factory direct heavy rack delivery', 1, CURRENT_TIMESTAMP - INTERVAL '16 days'),
-(46, 24, 'STOCK_OUT', 6, 8, 2, 'Installed at Chip Mong branch stockroom', 4, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+(45, 24, 'STOCK_IN', NULL, 8, 0, 8, 'Factory direct heavy rack delivery', 1, CURRENT_TIMESTAMP - INTERVAL '16 days'),
+(46, 24, 'STOCK_OUT', 'SALE', 6, 8, 2, 'Installed at Chip Mong branch stockroom', 4, CURRENT_TIMESTAMP - INTERVAL '5 hours'),
 
 -- Product 25: Shipping Carton Box (final: 550)
-(47, 25, 'STOCK_IN', 800, 0, 800, 'Packaging materials bulk replenishment', 3, CURRENT_TIMESTAMP - INTERVAL '20 days'),
-(48, 25, 'STOCK_OUT', 250, 800, 550, 'Warehouse e-commerce dispatch consumption', 3, CURRENT_TIMESTAMP - INTERVAL '4 days'),
+(47, 25, 'STOCK_IN', NULL, 800, 0, 800, 'Packaging materials bulk replenishment', 3, CURRENT_TIMESTAMP - INTERVAL '20 days'),
+(48, 25, 'STOCK_OUT', 'SALE', 250, 800, 550, 'Warehouse e-commerce dispatch consumption', 3, CURRENT_TIMESTAMP - INTERVAL '4 days'),
 
 -- Product 26: Packaging Tape Roll (final: 160)
-(49, 26, 'STOCK_IN', 200, 0, 200, 'Sealing tape stock delivery batch #TPE-12', 4, CURRENT_TIMESTAMP - INTERVAL '15 days'),
-(50, 26, 'STOCK_OUT', 40, 200, 160, 'Fulfillment packing stations dispatch', 3, CURRENT_TIMESTAMP - INTERVAL '5 days'),
+(49, 26, 'STOCK_IN', NULL, 200, 0, 200, 'Sealing tape stock delivery batch #TPE-12', 4, CURRENT_TIMESTAMP - INTERVAL '15 days'),
+(50, 26, 'STOCK_OUT', 'SALE', 40, 200, 160, 'Fulfillment packing stations dispatch', 3, CURRENT_TIMESTAMP - INTERVAL '5 days'),
 
 -- Product 27: Euro Wooden Pallet (final: 25)
-(51, 27, 'STOCK_IN', 30, 0, 30, 'Timber warehouse delivery #PLT-55', 2, CURRENT_TIMESTAMP - INTERVAL '22 days'),
-(52, 27, 'STOCK_OUT', 5, 30, 25, 'Allocated to external logistics loading bay', 4, CURRENT_TIMESTAMP - INTERVAL '8 days'),
+(51, 27, 'STOCK_IN', NULL, 30, 0, 30, 'Timber warehouse delivery #PLT-55', 2, CURRENT_TIMESTAMP - INTERVAL '22 days'),
+(52, 27, 'STOCK_OUT', 'SALE', 5, 30, 25, 'Allocated to external logistics loading bay', 4, CURRENT_TIMESTAMP - INTERVAL '8 days'),
 
 -- Product 28: Heavy Trash Bags (final: 48)
-(53, 28, 'STOCK_IN', 60, 0, 60, 'Cleaning & packaging supply intake', 3, CURRENT_TIMESTAMP - INTERVAL '11 days'),
-(54, 28, 'STOCK_OUT', 12, 60, 48, 'Dispatched to facilities maintenance team', 3, CURRENT_TIMESTAMP - INTERVAL '2 days');
+(53, 28, 'STOCK_IN', NULL, 60, 0, 60, 'Cleaning & packaging supply intake', 3, CURRENT_TIMESTAMP - INTERVAL '11 days'),
+(54, 28, 'STOCK_OUT', 'SALE', 12, 60, 48, 'Dispatched to facilities maintenance team', 3, CURRENT_TIMESTAMP - INTERVAL '2 days');
 
 SELECT setval('stock_transactions_id_seq', (SELECT MAX(id) FROM stock_transactions));
 

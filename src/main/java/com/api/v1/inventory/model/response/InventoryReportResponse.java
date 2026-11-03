@@ -40,6 +40,7 @@ public class InventoryReportResponse {
 
         boolean isLow = product.getStockQuantity() != null &&
                 product.getMinimumStock() != null &&
+                product.getStockQuantity() > 0 &&
                 product.getStockQuantity() <= product.getMinimumStock();
 
         return InventoryReportResponse.builder()

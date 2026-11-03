@@ -18,6 +18,7 @@ public class RegisterRequest {
 
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Username can only contain alphanumeric characters, underscores, hyphens, and periods")
     @Schema(description = "Desired unique username")
     private String username;
 
@@ -29,16 +30,22 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, max = 100, message = "Password must be at least 6 characters")
+    @Size(min = 8, max = 100, message = "Password must be at least 8 characters")
+    @Pattern(
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*(),.?\":{}|<>_\\-~+=`]).{8,}$",
+        message = "Password must be at least 8 characters and include at least one uppercase letter, one lowercase letter, one digit, and one special character"
+    )
     @Schema(description = "User password")
     private String password;
 
     @NotBlank(message = "Full name is required")
     @Size(max = 100, message = "Full name cannot exceed 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'\\-\\.]+$", message = "Full name can only contain letters, spaces, hyphens, and periods")
     @Schema(description = "User full legal name")
     private String fullName;
 
     @Size(max = 20, message = "Phone cannot exceed 20 characters")
+    @Pattern(regexp = "^$|^\\+?[0-9\\s\\-]{8,20}$", message = "Phone must be a valid number between 8 and 20 digits")
     @Schema(description = "Contact phone number")
     private String phone;
 

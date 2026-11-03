@@ -135,7 +135,7 @@ class ReportControllerStandaloneTest {
     @Test
     @DisplayName("GET /api/v1/reports/stock-transactions with period=TODAY returns 200")
     void testGetStockTransactionReportWithPeriod() throws Exception {
-        when(reportService.getStockTransactionReport(any(), any(), any(), eq(ReportPeriod.TODAY), any(), any(), any(), any()))
+        when(reportService.getStockTransactionReport(any(), any(), any(), any(), eq(ReportPeriod.TODAY), any(), any(), any(), any()))
                 .thenReturn(PageResponse.from(new PageImpl<>(List.of(
                         StockTransactionResponse.builder().id(10L).quantity(5).build()
                 ))));
@@ -146,7 +146,7 @@ class ReportControllerStandaloneTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.content[0].id").value(10));
 
-        verify(reportService).getStockTransactionReport(any(), any(), any(), eq(ReportPeriod.TODAY), any(), any(), any(), any());
+        verify(reportService).getStockTransactionReport(any(), any(), any(), any(), eq(ReportPeriod.TODAY), any(), any(), any(), any());
     }
 
     @Test
@@ -200,7 +200,7 @@ class ReportControllerStandaloneTest {
                 .data(new byte[]{7, 8, 9})
                 .build();
 
-        when(reportService.exportStockTransactionReport(eq(ExportFormat.EXCEL), any(), any(), any(), eq(ReportPeriod.THIS_MONTH), any(), any(), any()))
+        when(reportService.exportStockTransactionReport(eq(ExportFormat.EXCEL), any(), any(), any(), any(), eq(ReportPeriod.THIS_MONTH), any(), any(), any()))
                 .thenReturn(file);
 
         mockMvc.perform(get("/api/v1/reports/stock-transactions/export")

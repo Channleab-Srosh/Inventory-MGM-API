@@ -1,10 +1,12 @@
 package com.api.v1.inventory.model.entity;
 
+import com.api.v1.inventory.model.enumerate.StockOutReason;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -12,7 +14,9 @@ import java.time.Instant;
         @Index(name = "idx_transactions_product", columnList = "product_id"),
         @Index(name = "idx_transactions_created_by", columnList = "created_by"),
         @Index(name = "idx_transactions_type", columnList = "transaction_type"),
-        @Index(name = "idx_transactions_created_at", columnList = "created_at")
+        @Index(name = "idx_transactions_created_at", columnList = "created_at"),
+        @Index(name = "idx_transactions_supplier", columnList = "supplier_id"),
+        @Index(name = "idx_transactions_customer", columnList = "customer_id")
 })
 @Getter
 @Setter
@@ -29,6 +33,14 @@ public class StockTransaction {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false, length = 20)
     private TransactionType transactionType;
@@ -41,6 +53,13 @@ public class StockTransaction {
 
     @Column(name = "quantity_after", nullable = false)
     private Integer quantityAfter;
+
+    @Column(name = "unit_cost", precision = 12, scale = 2)
+    private BigDecimal unitCost;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reason", length = 20)
+    private StockOutReason reason;
 
     @Column(length = 255)
     private String note;

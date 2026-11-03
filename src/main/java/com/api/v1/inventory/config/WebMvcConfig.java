@@ -1,7 +1,9 @@
 package com.api.v1.inventory.config;
 
+import com.api.v1.inventory.model.enumerate.StockOutReason;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -16,6 +18,11 @@ import java.nio.file.Paths;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final AppProperty appProperty;
+
+    @Override
+    public void addFormatters(FormatterRegistry registry) {
+        registry.addConverter(String.class, StockOutReason.class, StockOutReason::fromString);
+    }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

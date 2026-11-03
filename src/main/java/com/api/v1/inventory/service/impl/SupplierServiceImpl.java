@@ -9,6 +9,7 @@ import com.api.v1.inventory.model.request.CreateSupplierRequest;
 import com.api.v1.inventory.model.request.UpdateSupplierRequest;
 import com.api.v1.inventory.model.response.SupplierResponse;
 import com.api.v1.inventory.repository.ProductRepository;
+import com.api.v1.inventory.repository.StockTransactionRepository;
 import com.api.v1.inventory.repository.SupplierRepository;
 import com.api.v1.inventory.service.SupplierService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class SupplierServiceImpl implements SupplierService {
 
     private final SupplierRepository supplierRepository;
     private final ProductRepository productRepository;
+    private final StockTransactionRepository stockTransactionRepository;
 
     @Override
     @Transactional
@@ -167,7 +169,16 @@ public class SupplierServiceImpl implements SupplierService {
             );
         }
 
-        // 4. Atomic delete
+        // 4. Check for stock transaction references (409 Conflict)
+        List<Long> txReferencedSupplierIds = stockTransactionRepository.findReferencedSupplierIds(ids);
+        if (!txReferencedSupplierIds.isEmpty()) {
+            throw new ConflictException(
+                    "Cannot delete supplier because it is currently referenced by stock transactions. Referenced supplier IDs: "
+                            + txReferencedSupplierIds + ". Nothing was deleted."
+            );
+        }
+
+        // 5. Atomic delete
         supplierRepository.deleteAll(suppliers);
         log.info("Deleted {} supplier(s) with ids: {}", suppliers.size(), ids);
     }

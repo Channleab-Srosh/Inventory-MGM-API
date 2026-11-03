@@ -291,12 +291,12 @@ public class PdfReportService {
             document.add(subtitle);
 
             // Table
-            PdfPTable table = new PdfPTable(10);
+            PdfPTable table = new PdfPTable(11);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{7, 13, 18, 9, 8, 7, 7, 10, 14, 15});
+            table.setWidths(new float[]{6, 12, 16, 9, 9, 7, 7, 7, 10, 12, 14});
 
             String[] headers = {
-                    "ID", "SKU", "Product Name", "Type", "Qty Changed",
+                    "ID", "SKU", "Product Name", "Type", "Reason", "Qty Changed",
                     "Before", "After", "User", "Timestamp", "Note"
             };
             for (String h : headers) {
@@ -323,6 +323,9 @@ public class PdfReportService {
                 String type = item.getTransactionType() != null ? item.getTransactionType().name() : "";
                 table.addCell(createCell(type, CELL_BOLD_FONT, Element.ALIGN_CENTER, bg));
 
+                String reason = item.getReason() != null ? item.getReason().name() : "";
+                table.addCell(createCell(reason, CELL_FONT, Element.ALIGN_CENTER, bg));
+
                 int qty = item.getQuantity() != null ? item.getQuantity() : 0;
                 if (type.contains("IN")) {
                     totalInQty += qty;
@@ -342,7 +345,7 @@ public class PdfReportService {
 
             // Summary row
             PdfPCell sumLabel = new PdfPCell(new Phrase("Total Transactions: " + items.size() + " (In: " + totalInQty + ", Out: " + totalOutQty + ")", CELL_BOLD_FONT));
-            sumLabel.setColspan(10);
+            sumLabel.setColspan(11);
             sumLabel.setBackgroundColor(SUMMARY_BG);
             sumLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
             sumLabel.setPadding(5);

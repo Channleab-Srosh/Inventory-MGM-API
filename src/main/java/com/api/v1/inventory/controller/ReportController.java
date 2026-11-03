@@ -5,6 +5,7 @@ import com.api.v1.inventory.common.response.ApiResponse;
 import com.api.v1.inventory.common.response.PageResponse;
 import com.api.v1.inventory.model.enumerate.ExportFormat;
 import com.api.v1.inventory.model.enumerate.ReportPeriod;
+import com.api.v1.inventory.model.enumerate.StockOutReason;
 import com.api.v1.inventory.model.enumerate.StockStatusFilter;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import com.api.v1.inventory.model.response.ExportedFile;
@@ -61,6 +62,8 @@ public class ReportController {
             @RequestParam(required = false) Long productId,
             @Parameter(description = "Filter by transaction type (STOCK_IN, STOCK_OUT)")
             @RequestParam(required = false) TransactionType type,
+            @Parameter(description = "Filter by stock-out reason (SALE, DAMAGE, OTHER)")
+            @RequestParam(required = false) StockOutReason reason,
             @Parameter(description = "Filter transactions by user ID who performed it")
             @RequestParam(required = false) Long userId,
             @Parameter(description = "Predefined report period (TODAY, THIS_WEEK, THIS_MONTH, THIS_YEAR, CUSTOM). Defaults to CUSTOM.")
@@ -75,7 +78,7 @@ public class ReportController {
     ) {
         Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_STOCK_TRANSACTIONS_SORT_PROPERTIES, "id");
         PageResponse<StockTransactionResponse> response = reportService.getStockTransactionReport(
-                productId, type, userId, period, fromDate, toDate, zoneId, validatedPageable
+                productId, type, reason, userId, period, fromDate, toDate, zoneId, validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Stock transaction report retrieved successfully"));
     }
@@ -194,6 +197,8 @@ public class ReportController {
             @RequestParam(required = false) Long productId,
             @Parameter(description = "Filter by transaction type (STOCK_IN, STOCK_OUT)")
             @RequestParam(required = false) TransactionType type,
+            @Parameter(description = "Filter by stock-out reason (SALE, DAMAGE, OTHER)")
+            @RequestParam(required = false) StockOutReason reason,
             @Parameter(description = "Filter transactions by user ID who performed it")
             @RequestParam(required = false) Long userId,
             @Parameter(description = "Predefined report period (TODAY, THIS_WEEK, THIS_MONTH, THIS_YEAR, CUSTOM). Default is THIS_MONTH.")
@@ -206,7 +211,7 @@ public class ReportController {
             @RequestParam(required = false) String zoneId
     ) {
         ExportedFile file = reportService.exportStockTransactionReport(
-                format, productId, type, userId, period, fromDate, toDate, zoneId
+                format, productId, type, reason, userId, period, fromDate, toDate, zoneId
         );
 
         return ResponseEntity.ok()

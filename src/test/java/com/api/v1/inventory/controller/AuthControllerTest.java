@@ -719,6 +719,68 @@ AuthControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/auth/change-password - Rejects new password identical to current password")
+    void testChangePasswordRejectsIdenticalPassword() throws Exception {
+        LoginRequest loginStaffReq = LoginRequest.builder()
+                .username("staff")
+                .password("Staff@12345")
+                .build();
+
+        MvcResult loginRes = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginStaffReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String staffToken = objectMapper.readTree(loginRes.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        com.api.v1.inventory.model.request.ChangePasswordRequest changeReq =
+                com.api.v1.inventory.model.request.ChangePasswordRequest.builder()
+                        .currentPassword("Staff@12345")
+                        .newPassword("Staff@12345")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/change-password")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(changeReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("cannot be the same as the current password")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/change-password - Rejects weak new password")
+    void testChangePasswordRejectsWeakPassword() throws Exception {
+        LoginRequest loginStaffReq = LoginRequest.builder()
+                .username("staff")
+                .password("Staff@12345")
+                .build();
+
+        MvcResult loginRes = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginStaffReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String staffToken = objectMapper.readTree(loginRes.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        com.api.v1.inventory.model.request.ChangePasswordRequest changeReq =
+                com.api.v1.inventory.model.request.ChangePasswordRequest.builder()
+                        .currentPassword("Staff@12345")
+                        .newPassword("weak")
+                        .build();
+
+        mockMvc.perform(post("/api/v1/auth/change-password")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(changeReq)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("POST /api/v1/auth/reset-password - Rejects non-OTP JWT tokens")
     void testResetPasswordRejectsJwtTokens() throws Exception {
         var staffUser = appUserRepository.findByUsernameIgnoreCase("staff").orElseThrow();

@@ -2,6 +2,7 @@ package com.api.v1.inventory.controller;
 
 import com.api.v1.inventory.common.response.ApiResponse;
 import com.api.v1.inventory.common.response.PageResponse;
+import com.api.v1.inventory.model.enumerate.StockOutReason;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import com.api.v1.inventory.model.request.StockOperationRequest;
 import com.api.v1.inventory.model.response.StockTransactionResponse;
@@ -62,8 +63,14 @@ public class StockController {
             @RequestParam(required = false) Long productId,
             @Parameter(description = "Filter by transaction type")
             @RequestParam(required = false) TransactionType type,
+            @Parameter(description = "Filter by stock-out reason (SALE, DAMAGE, OTHER)")
+            @RequestParam(required = false) StockOutReason reason,
             @Parameter(description = "Filter transactions by user ID who performed it")
             @RequestParam(required = false) Long userId,
+            @Parameter(description = "Filter transactions by supplier ID")
+            @RequestParam(required = false) Long supplierId,
+            @Parameter(description = "Filter transactions by customer ID")
+            @RequestParam(required = false) Long customerId,
             @Parameter(description = "Filter transactions created on or after this timestamp")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fromDate,
             @Parameter(description = "Filter transactions created on or before this timestamp")
@@ -72,7 +79,7 @@ public class StockController {
     ) {
         Pageable validatedPageable = PaginationValidator.validateAndStabilize(pageable, ALLOWED_SORT_PROPERTIES, "id");
         PageResponse<StockTransactionResponse> response = stockService.getTransactionHistory(
-                productId, type, userId, fromDate, toDate, validatedPageable
+                productId, type, reason, userId, supplierId, customerId, fromDate, toDate, validatedPageable
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Stock history retrieved successfully"));
     }

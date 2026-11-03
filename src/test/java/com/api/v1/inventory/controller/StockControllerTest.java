@@ -1,14 +1,19 @@
 package com.api.v1.inventory.controller;
 
 import com.api.v1.inventory.model.entity.Category;
+import com.api.v1.inventory.model.entity.Customer;
 import com.api.v1.inventory.model.entity.Product;
 import com.api.v1.inventory.model.entity.StockTransaction;
+import com.api.v1.inventory.model.entity.Supplier;
+import com.api.v1.inventory.model.enumerate.StockOutReason;
 import com.api.v1.inventory.model.enumerate.TransactionType;
 import com.api.v1.inventory.model.request.LoginRequest;
 import com.api.v1.inventory.model.request.StockOperationRequest;
 import com.api.v1.inventory.repository.CategoryRepository;
+import com.api.v1.inventory.repository.CustomerRepository;
 import com.api.v1.inventory.repository.ProductRepository;
 import com.api.v1.inventory.repository.StockTransactionRepository;
+import com.api.v1.inventory.repository.SupplierRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,12 +51,20 @@ class StockControllerTest {
     private CategoryRepository categoryRepository;
 
     @Autowired
+    private SupplierRepository supplierRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
     private StockTransactionRepository stockTransactionRepository;
 
     private String adminToken;
     private String staffToken;
     private Product testProduct;
     private Product inactiveProduct;
+    private Supplier testSupplier;
+    private Customer testCustomer;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -64,11 +77,25 @@ class StockControllerTest {
                         .description("Category for stock tests")
                         .build()));
 
+        testSupplier = supplierRepository.findByNameIgnoreCase("StockTestSupplier")
+                .orElseGet(() -> supplierRepository.save(Supplier.builder()
+                        .name("StockTestSupplier")
+                        .phone("012999001")
+                        .build()));
+
+        testCustomer = customerRepository.findByPhone("012999002")
+                .orElseGet(() -> customerRepository.save(Customer.builder()
+                        .name("StockTestCustomer")
+                        .phone("012999002")
+                        .active(true)
+                        .build()));
+
         testProduct = productRepository.findBySkuIgnoreCase("STOCK-TEST-001")
                 .orElseGet(() -> productRepository.save(Product.builder()
                         .sku("STOCK-TEST-001")
                         .name("Stock Test Item")
                         .category(category)
+                        .supplier(testSupplier)
                         .unitPrice(BigDecimal.valueOf(25.00))
                         .stockQuantity(10)
                         .minimumStock(5)
@@ -84,6 +111,7 @@ class StockControllerTest {
                         .sku("STOCK-INACTIVE-002")
                         .name("Inactive Stock Item")
                         .category(category)
+                        .supplier(testSupplier)
                         .unitPrice(BigDecimal.valueOf(50.00))
                         .stockQuantity(5)
                         .minimumStock(2)
@@ -117,6 +145,7 @@ class StockControllerTest {
     void testStockInSuccess() throws Exception {
         StockOperationRequest request = StockOperationRequest.builder()
                 .productId(testProduct.getId())
+                .supplierId(testSupplier.getId())
                 .quantity(15)
                 .note("Shipment received from supplier")
                 .build();
@@ -129,6 +158,8 @@ class StockControllerTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", containsString("Stock added successfully")))
                 .andExpect(jsonPath("$.data.productId", is(testProduct.getId().intValue())))
+                .andExpect(jsonPath("$.data.supplierId", is(testSupplier.getId().intValue())))
+                .andExpect(jsonPath("$.data.supplierName", is(testSupplier.getName())))
                 .andExpect(jsonPath("$.data.transactionType", is("STOCK_IN")))
                 .andExpect(jsonPath("$.data.quantity", is(15)))
                 .andExpect(jsonPath("$.data.quantityBefore", is(10)))
@@ -141,10 +172,48 @@ class StockControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/stock/in - Success with unit cost stores and returns unitCost")
+    void testStockInWithUnitCostSuccess() throws Exception {
+        StockOperationRequest request = StockOperationRequest.builder()
+                .productId(testProduct.getId())
+                .supplierId(testSupplier.getId())
+                .quantity(10)
+                .unitCost(BigDecimal.valueOf(18.50))
+                .note("Stock in with unit cost")
+                .build();
+
+        mockMvc.perform(post("/api/v1/stock/in")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.unitCost", closeTo(18.50, 0.001)));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/stock/in - Rejects when supplier ID is missing (400 Bad Request)")
+    void testStockInMissingSupplierId() throws Exception {
+        StockOperationRequest request = StockOperationRequest.builder()
+                .productId(testProduct.getId())
+                .quantity(10)
+                .build();
+
+        mockMvc.perform(post("/api/v1/stock/in")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Supplier ID is required")));
+    }
+
+    @Test
     @DisplayName("POST /api/v1/stock/in - Success by Staff role")
     void testStockInByStaff() throws Exception {
         StockOperationRequest request = StockOperationRequest.builder()
                 .productId(testProduct.getId())
+                .supplierId(testSupplier.getId())
                 .quantity(5)
                 .note("Staff stock in")
                 .build();
@@ -155,6 +224,7 @@ class StockControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.supplierId", is(testSupplier.getId().intValue())))
                 .andExpect(jsonPath("$.data.createdByUsername", is("staff")));
     }
 
@@ -163,6 +233,8 @@ class StockControllerTest {
     void testStockOutSuccess() throws Exception {
         StockOperationRequest request = StockOperationRequest.builder()
                 .productId(testProduct.getId())
+                .customerId(testCustomer.getId())
+                .reason(StockOutReason.SALE)
                 .quantity(4)
                 .note("Customer sale")
                 .build();
@@ -175,7 +247,10 @@ class StockControllerTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", containsString("Stock deducted successfully")))
                 .andExpect(jsonPath("$.data.productId", is(testProduct.getId().intValue())))
+                .andExpect(jsonPath("$.data.customerId", is(testCustomer.getId().intValue())))
+                .andExpect(jsonPath("$.data.customerName", is(testCustomer.getName())))
                 .andExpect(jsonPath("$.data.transactionType", is("STOCK_OUT")))
+                .andExpect(jsonPath("$.data.reason", is("SALE")))
                 .andExpect(jsonPath("$.data.quantity", is(4)))
                 .andExpect(jsonPath("$.data.quantityBefore", is(10)))
                 .andExpect(jsonPath("$.data.quantityAfter", is(6)))
@@ -187,10 +262,52 @@ class StockControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/stock/out - Rejects when customer ID is missing for SALE (400 Bad Request)")
+    void testStockOutMissingCustomerIdForSale() throws Exception {
+        StockOperationRequest request = StockOperationRequest.builder()
+                .productId(testProduct.getId())
+                .reason(StockOutReason.SALE)
+                .quantity(3)
+                .build();
+
+        mockMvc.perform(post("/api/v1/stock/out")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Customer ID is required")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/stock/out - Success without customer when reason is DAMAGE")
+    void testStockOutSuccessWithoutCustomerWhenDamage() throws Exception {
+        StockOperationRequest request = StockOperationRequest.builder()
+                .productId(testProduct.getId())
+                .reason(StockOutReason.DAMAGE)
+                .quantity(2)
+                .note("Broken during handling")
+                .build();
+
+        mockMvc.perform(post("/api/v1/stock/out")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.reason", is("DAMAGE")))
+                .andExpect(jsonPath("$.data.customerId", nullValue()))
+                .andExpect(jsonPath("$.data.customerName", nullValue()))
+                .andExpect(jsonPath("$.data.quantityAfter", is(8)));
+    }
+
+    @Test
     @DisplayName("POST /api/v1/stock/out - Rejects when requested quantity exceeds available stock (409 Conflict)")
     void testStockOutInsufficientStock() throws Exception {
         StockOperationRequest request = StockOperationRequest.builder()
                 .productId(testProduct.getId())
+                .customerId(testCustomer.getId())
+                .reason(StockOutReason.SALE)
                 .quantity(20) // testProduct only has 10
                 .note("Excessive deduction attempt")
                 .build();
@@ -245,6 +362,7 @@ class StockControllerTest {
     void testStockInNonexistentProduct() throws Exception {
         StockOperationRequest request = StockOperationRequest.builder()
                 .productId(999999L)
+                .supplierId(testSupplier.getId())
                 .quantity(10)
                 .build();
 
@@ -262,6 +380,7 @@ class StockControllerTest {
     void testStockInInactiveProduct() throws Exception {
         StockOperationRequest request = StockOperationRequest.builder()
                 .productId(inactiveProduct.getId())
+                .supplierId(testSupplier.getId())
                 .quantity(10)
                 .build();
 
@@ -279,6 +398,7 @@ class StockControllerTest {
     void testStockInUnauthenticated() throws Exception {
         StockOperationRequest request = StockOperationRequest.builder()
                 .productId(testProduct.getId())
+                .supplierId(testSupplier.getId())
                 .quantity(10)
                 .build();
 
@@ -294,6 +414,7 @@ class StockControllerTest {
         // Trigger a stock in first
         StockOperationRequest stockInReq = StockOperationRequest.builder()
                 .productId(testProduct.getId())
+                .supplierId(testSupplier.getId())
                 .quantity(2)
                 .note("History check in")
                 .build();
@@ -312,7 +433,8 @@ class StockControllerTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.content", notNullValue()))
                 .andExpect(jsonPath("$.data.content", hasSize(greaterThanOrEqualTo(1))))
-                .andExpect(jsonPath("$.data.content[0].transactionType", is("STOCK_IN")));
+                .andExpect(jsonPath("$.data.content[0].transactionType", is("STOCK_IN")))
+                .andExpect(jsonPath("$.data.content[0].supplierId", is(testSupplier.getId().intValue())));
     }
 
     @Test
@@ -332,6 +454,7 @@ class StockControllerTest {
     void testGetStockHistoryByIdSuccess() throws Exception {
         StockOperationRequest stockInReq = StockOperationRequest.builder()
                 .productId(testProduct.getId())
+                .supplierId(testSupplier.getId())
                 .quantity(7)
                 .note("Specific tx test")
                 .build();
@@ -351,6 +474,8 @@ class StockControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.id", is(txId.intValue())))
+                .andExpect(jsonPath("$.data.supplierId", is(testSupplier.getId().intValue())))
+                .andExpect(jsonPath("$.data.supplierName", is(testSupplier.getName())))
                 .andExpect(jsonPath("$.data.quantity", is(7)))
                 .andExpect(jsonPath("$.data.unitOfMeasure", is("PCS")))
                 .andExpect(jsonPath("$.data.note", is("Specific tx test")));

@@ -86,6 +86,7 @@ class ReportControllerTest {
         // Perform a stock-in to have guaranteed transaction history
         StockOperationRequest inReq = StockOperationRequest.builder()
                 .productId(reportProduct.getId())
+                .supplierId(supplier.getId())
                 .quantity(5)
                 .note("Report test stock in")
                 .build();

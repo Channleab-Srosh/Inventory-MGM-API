@@ -277,7 +277,7 @@ public class ExcelReportService {
 
             // Headers
             String[] columns = {
-                    "Transaction ID", "SKU", "Product Name", "Type", "Unit",
+                    "Transaction ID", "SKU", "Product Name", "Type", "Reason", "Unit",
                     "Qty Changed", "Qty Before", "Qty After", "Performed By",
                     "Timestamp", "Note"
             };
@@ -305,7 +305,11 @@ public class ExcelReportService {
                 typeCell.setCellValue(item.getTransactionType() != null ? item.getTransactionType().name() : "");
                 typeCell.setCellStyle(centerStyle);
 
-                Cell unitCell = row.createCell(4);
+                Cell reasonCell = row.createCell(4);
+                reasonCell.setCellValue(item.getReason() != null ? item.getReason().name() : "");
+                reasonCell.setCellStyle(centerStyle);
+
+                Cell unitCell = row.createCell(5);
                 unitCell.setCellValue(item.getUnitOfMeasure() != null ? item.getUnitOfMeasure().name() : "");
                 unitCell.setCellStyle(centerStyle);
 
@@ -317,21 +321,21 @@ public class ExcelReportService {
                         totalOutQty += qty;
                     }
                 }
-                Cell qtyCell = row.createCell(5);
+                Cell qtyCell = row.createCell(6);
                 qtyCell.setCellValue(qty);
                 qtyCell.setCellStyle(integerStyle);
 
-                Cell beforeCell = row.createCell(6);
+                Cell beforeCell = row.createCell(7);
                 beforeCell.setCellValue(item.getQuantityBefore() != null ? item.getQuantityBefore() : 0);
                 beforeCell.setCellStyle(integerStyle);
 
-                Cell afterCell = row.createCell(7);
+                Cell afterCell = row.createCell(8);
                 afterCell.setCellValue(item.getQuantityAfter() != null ? item.getQuantityAfter() : 0);
                 afterCell.setCellStyle(integerStyle);
 
-                row.createCell(8).setCellValue(item.getCreatedByUsername() != null ? item.getCreatedByUsername() : "N/A");
+                row.createCell(9).setCellValue(item.getCreatedByUsername() != null ? item.getCreatedByUsername() : "N/A");
 
-                Cell dateCell = row.createCell(9);
+                Cell dateCell = row.createCell(10);
                 if (item.getCreatedAt() != null) {
                     dateCell.setCellValue(item.getCreatedAt().atZone(zoneId).format(DATE_FORMATTER));
                 } else {
@@ -339,7 +343,7 @@ public class ExcelReportService {
                 }
                 dateCell.setCellStyle(centerStyle);
 
-                row.createCell(10).setCellValue(item.getNote() != null ? item.getNote() : "");
+                row.createCell(11).setCellValue(item.getNote() != null ? item.getNote() : "");
             }
 
             // Summary

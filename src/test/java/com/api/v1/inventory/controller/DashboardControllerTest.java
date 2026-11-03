@@ -129,6 +129,20 @@ class DashboardControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/dashboard/summary?period=TODAY - Admin can retrieve period KPI summary with net stock units")
+    void testGetSummaryPeriodToday() throws Exception {
+        mockMvc.perform(get("/api/v1/dashboard/summary")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .param("period", "TODAY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.totalProducts", notNullValue()))
+                .andExpect(jsonPath("$.data.totalStockQuantity", notNullValue()))
+                .andExpect(jsonPath("$.data.totalStockInQuantity", notNullValue()))
+                .andExpect(jsonPath("$.data.totalStockOutQuantity", notNullValue()));
+    }
+
+    @Test
     @DisplayName("GET /api/v1/dashboard/summary - Staff can retrieve KPI summary")
     void testGetSummaryAsStaff() throws Exception {
         mockMvc.perform(get("/api/v1/dashboard/summary")

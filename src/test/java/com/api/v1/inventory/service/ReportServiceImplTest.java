@@ -146,17 +146,17 @@ class ReportServiceImplTest {
         PageResponse<StockTransactionResponse> pageResponse = PageResponse.from(new PageImpl<>(List.of(item)));
 
         when(stockService.getTransactionHistory(
-                eq(1L), eq(TransactionType.STOCK_IN), isNull(), any(Instant.class), any(Instant.class), any(Pageable.class)
+                eq(1L), eq(TransactionType.STOCK_IN), isNull(), isNull(), any(Instant.class), any(Instant.class), any(Pageable.class)
         )).thenReturn(pageResponse);
 
         PageResponse<StockTransactionResponse> result = reportService.getStockTransactionReport(
-                1L, TransactionType.STOCK_IN, null, ReportPeriod.TODAY, null, null, "UTC", PageRequest.of(0, 10)
+                1L, TransactionType.STOCK_IN, null, null, ReportPeriod.TODAY, null, null, "UTC", PageRequest.of(0, 10)
         );
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         verify(stockService).getTransactionHistory(
-                eq(1L), eq(TransactionType.STOCK_IN), isNull(), any(Instant.class), any(Instant.class), any(Pageable.class)
+                eq(1L), eq(TransactionType.STOCK_IN), isNull(), isNull(), any(Instant.class), any(Instant.class), any(Pageable.class)
         );
     }
 
@@ -209,13 +209,13 @@ class ReportServiceImplTest {
                 .createdAt(Instant.now())
                 .build();
 
-        when(stockTransactionRepository.findTransactionsList(any(), any(), any(), any(), any()))
+        when(stockTransactionRepository.findTransactionsList(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(tx));
         when(excelReportService.generateStockTransactionReport(anyList(), anyString(), any()))
                 .thenReturn(new byte[]{10, 20});
 
         ExportedFile file = reportService.exportStockTransactionReport(
-                ExportFormat.EXCEL, 1L, TransactionType.STOCK_IN, null, ReportPeriod.THIS_WEEK, null, null, "UTC"
+                ExportFormat.EXCEL, 1L, TransactionType.STOCK_IN, null, null, ReportPeriod.THIS_WEEK, null, null, "UTC"
         );
 
         assertNotNull(file);
@@ -236,13 +236,13 @@ class ReportServiceImplTest {
                 .createdAt(Instant.now())
                 .build();
 
-        when(stockTransactionRepository.findTransactionsList(any(), any(), any(), any(), any()))
+        when(stockTransactionRepository.findTransactionsList(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(tx));
         when(pdfReportService.generateStockTransactionReport(anyList(), anyString(), any()))
                 .thenReturn(new byte[]{30, 40, 50});
 
         ExportedFile file = reportService.exportStockTransactionReport(
-                ExportFormat.PDF, 1L, TransactionType.STOCK_IN, null, ReportPeriod.THIS_MONTH, null, null, "UTC"
+                ExportFormat.PDF, 1L, TransactionType.STOCK_IN, null, null, ReportPeriod.THIS_MONTH, null, null, "UTC"
         );
 
         assertNotNull(file);
